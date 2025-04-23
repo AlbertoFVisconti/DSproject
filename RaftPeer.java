@@ -6,7 +6,6 @@ import java.util.concurrent.*;
 public class RaftPeer {
     private final int port;
     private final String id = UUID.randomUUID().toString().substring(0, 8);
-    private final Map<String, Socket> peerSockets = new ConcurrentHashMap<>();
     private final Map<String, String> peerAddresses = new ConcurrentHashMap<>(); // id -> "ip:port"
 
     public RaftPeer(int port) {
@@ -15,7 +14,7 @@ public class RaftPeer {
 
     public void start() {
         new Thread(this::listenForPeers).start();
-        new Thread(this::sendPings).start();
+        new Thread(this::PrintPeers).start();
         System.out.println("[" + id + "] Listening on port " + port);
     }
 
@@ -30,12 +29,14 @@ public class RaftPeer {
         }
     }
 
+    // recived a message to Socket from a peer
     private void handleIncomingPeer(Socket socket) {
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             String line;
             while ((line = in.readLine()) != null) {
+                // different message type
                 if (line.startsWith("PEER:")) {
                     String[] parts = line.split(":");
                     String newId = parts[1];
@@ -43,19 +44,13 @@ public class RaftPeer {
                     String port = parts[3];
                     String address = ip + ":" + port;
 
-                    if (!peerSockets.containsKey(newId)) {
-                        try {
-                            Socket s = new Socket(ip, Integer.parseInt(port));
-                            peerSockets.put(newId, s);
-                            peerAddresses.put(newId, address);
-                            System.out.println("[" + id + "] Discovered new peer: " + newId + " at " + address);
-                            broadcast("PEER:" + newId + ":" + ip + ":" + port, newId);
-                        } catch (IOException e) {
-                            System.out.println("[" + id + "] Could not connect to " + address);
-                        }
+                    if (!peerAddresses.containsKey(newId)) {
+                        peerAddresses.put(newId, address);
+                        System.out.println("[" + id + "] Discovered new peer: " + newId + " at " + address);
+                        broadcast("PEER:" + newId + ":" + ip + ":" + port, newId);
+                        connectToPeer(ip, Integer.parseInt(port));
+
                     }
-                } else if (line.startsWith("PING:")) {
-                    System.out.println("[" + id + "] Received " + line);
                 }
             }
         } catch (IOException e) {
@@ -66,22 +61,27 @@ public class RaftPeer {
     public void connectToPeer(String host, int peerPort) {
         try {
             Socket socket = new Socket(host, peerPort);
-            peerSockets.put("TEMP", socket); // placeholder until we get their ID
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             out.println("PEER:" + id + ":localhost:" + port);
             System.out.println("[" + id + "] Connected to " + host + ":" + peerPort);
+            socket.close();
         } catch (IOException e) {
             System.out.println("[" + id + "] Failed to connect to " + host + ":" + peerPort);
         }
     }
 
     private void broadcast(String message, String excludeId) {
-        for (Map.Entry<String, Socket> entry : peerSockets.entrySet()) {
+        for (Map.Entry<String, String> entry : peerAddresses.entrySet()) {
             String peerId = entry.getKey();
+            String values[] = entry.getValue().split(":");
+            String peerIP = values[0];
+            String peerPORT = values[1];
             if (!peerId.equals(excludeId)) {
                 try {
-                    PrintWriter out = new PrintWriter(entry.getValue().getOutputStream(), true);
+                    Socket socket = new Socket(peerIP, Integer.parseInt(peerPORT));
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     out.println(message);
+                    socket.close();
                 } catch (IOException e) {
                     System.out.println("[" + id + "] Failed to send to " + peerId);
                 }
@@ -89,22 +89,17 @@ public class RaftPeer {
         }
     }
 
-    private void sendPings() {
+    private void PrintPeers() {
         while (true) {
+            System.out.println("Current known peers are:");
+            for (Map.Entry<String, String> entry : peerAddresses.entrySet()) {
+                System.out.println(entry.getKey() + "AT:  " + entry.getValue());
+            }
             try {
-                List<String> peerIds = new ArrayList<>(peerSockets.keySet());
-                Collections.shuffle(peerIds);
-                for (int i = 0; i < Math.min(2, peerIds.size()); i++) {
-                    String targetId = peerIds.get(i);
-                    Socket socket = peerSockets.get(targetId);
-                    if (socket != null && !socket.isClosed()) {
-                        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                        out.println("PING:" + id);
-                    }
-                }
-                Thread.sleep(2000);
+                Thread.sleep(3000);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.err.println("Error in the print timeout");
+                return;
             }
         }
     }
