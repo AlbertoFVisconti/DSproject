@@ -1,20 +1,28 @@
+package peer;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import raft.Role;
+import tpc.State;
 
-public class RaftPeer {
+public class Peer {
     private final int port;
     private final String id = UUID.randomUUID().toString().substring(0, 8);
     private final Map<String, String> peerAddresses = new ConcurrentHashMap<>(); // id -> "ip:port"
+    private Role role;
+    private State state;
 
-    public RaftPeer(int port) {
+    public Peer(int port) {
         this.port = port;
+        this.role = Role.LEADER;
+        this.state = State.INIT;
     }
 
     public void start() {
         new Thread(this::listenForPeers).start();
-        new Thread(this::PrintPeers).start();
+        new Thread(this::DebugInfo).start();
         System.out.println("[" + id + "] Listening on port " + port);
     }
 
@@ -89,17 +97,13 @@ public class RaftPeer {
         }
     }
 
-    private void PrintPeers() {
+    private void DebugInfo() {
         while (true) {
-            System.out.println("Current known peers are:");
-            for (Map.Entry<String, String> entry : peerAddresses.entrySet()) {
-                System.out.println(entry.getKey() + "AT:  " + entry.getValue());
-            }
+            System.out.println("[" + this.role + "]");
             try {
                 Thread.sleep(3000);
-            } catch (Exception e) {
-                System.err.println("Error in the print timeout");
-                return;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -113,12 +117,13 @@ public class RaftPeer {
         }
 
         int port = Integer.parseInt(args[0]);
-        RaftPeer peer = new RaftPeer(port);
+        Peer peer = new Peer(port);
         peer.start();
 
         if (args.length == 3) {
             String peerHost = args[1];
             int peerPort = Integer.parseInt(args[2]);
+            peer.role = Role.FOLLOWER;
             peer.connectToPeer(peerHost, peerPort);
         }
     }
