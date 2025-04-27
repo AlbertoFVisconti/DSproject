@@ -58,7 +58,7 @@ public class Peer {
                 }
 
                 switch (type) {
-                    case MessageType.PEER:
+                    case PEER:
                         String newId = parts[1];
                         String ip = parts[2];
                         String port = parts[3];
@@ -72,10 +72,13 @@ public class Peer {
                         }
                         break;
 
-                    case MessageType.ADD:
+                    case ADD:
                         if (role == Role.LEADER) {
                             // start 3PC procedure to add the value
                             // TODO implement
+                            System.out.println("Value " + parts[3] + " added to queue with id " + parts[2]);
+                            contactClient(parts[1]);
+
                         } else {
                             // send it to the leader if possible, otherwise drop it
                             if (leader == null) {
@@ -86,7 +89,7 @@ public class Peer {
 
                         }
                         break;
-                    case MessageType.ADDCLIENT:
+                    case ADDCLIENT:
                         String client_id = parts[1];
                         String client_ip = parts[2];
                         String client_port = parts[3];
@@ -97,6 +100,7 @@ public class Peer {
                                     "[" + id + "] Discovered new client: " + client_id + " at " + client_address);
                             broadcast("ADDCLIENT:" + client_id + ":" + client_ip + ":" + client_port, null);
                         }
+                        break;
 
                     default:
                         System.out.println("[" + id + "] Unknown message type: " + type);
@@ -117,6 +121,20 @@ public class Peer {
             socket.close();
         } catch (IOException e) {
             System.out.println("[" + id + "] Failed to connect to " + host + ":" + peerPort);
+        }
+    }
+
+    public void contactClient(String id) {
+        String client_ip = clientAddresses.get(id).split(":")[0];
+        int client_port = Integer.parseInt(clientAddresses.get(id).split(":")[1]);
+        try {
+            Socket socket = new Socket(client_ip, client_port);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("ACK:" + this.id);
+            System.out.println("Sent ACK to " + id);
+            socket.close();
+        } catch (IOException e) {
+            System.out.println("[" + id + "] Failed to connect to " + client_ip + ":" + client_port);
         }
     }
 
