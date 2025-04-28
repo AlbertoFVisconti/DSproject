@@ -7,7 +7,7 @@ public class AddClientMessage extends Message {
     private final int port;
 
     public AddClientMessage(String senderId, String ip, int port) {
-        super(MessageType.ADDCLIENT, senderId);
+        super(MessageType.ADDCLIENT);
         this.ip = ip;
         this.port = port;
     }

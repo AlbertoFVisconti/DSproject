@@ -2,17 +2,17 @@ package common.Messages;
 
 import common.MessageType;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public abstract class Message {
+public abstract class Message implements Serializable {
     private final UUID uuid;
     private final MessageType type;
-    private final String senderId;
+    private String senderId;
 
-    public Message(MessageType type, String senderId) {
+    public Message(MessageType type) {
         this.uuid = UUID.randomUUID();
         this.type = type;
-        this.senderId = senderId;
     }
 
     public UUID getUuid() {
@@ -20,5 +20,8 @@ public abstract class Message {
     }
     public String getSenderId() {
         return senderId;
+    }
+    public void setSenderId(String senderId) {
+        this.senderId = senderId;
     }
 }
