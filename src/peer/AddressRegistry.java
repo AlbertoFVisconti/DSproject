@@ -3,18 +3,19 @@ package peer;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AddressRegistry {
-    private ConcurrentHashMap<String, String> clients;
+    private ConcurrentHashMap<String, String> idToAddress;
     public AddressRegistry() {
-        clients = new ConcurrentHashMap<>();
+        this.idToAddress = new ConcurrentHashMap<>();
     }
 
-    public void addEntry(String clientID, String clientAddress) {
-        clients.put(clientID, clientAddress);
+    public void addEntry(String id, String address) {
+        idToAddress.put(id, address);
     }
-    public void removeEntry(String clientID) {
-        clients.remove(clientID);
+    public void removeEntry(String id) {
+        idToAddress.remove(id);
     }
-    public String getAddress(String clientID) {
-        return clients.get(clientID);
+    public String getAddress(String id) {
+        return idToAddress.get(id);
     }
+    public ConcurrentHashMap.KeySetView<String, String> getIds() {return idToAddress.keySet(); }
 }

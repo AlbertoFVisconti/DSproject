@@ -1,4 +1,6 @@
-package common;
+package common.util;
+
+import common.MessageType;
 
 public class MessageParser {
     public static MessageType parseType(String line) {
