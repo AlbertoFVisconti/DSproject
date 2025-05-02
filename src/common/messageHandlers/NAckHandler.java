@@ -1,6 +1,5 @@
 package common.messageHandlers;
 
-import common.messages.AckMessage;
 import common.messages.NAckMessage;
 import common.messages.Response;
 

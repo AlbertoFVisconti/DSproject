@@ -29,7 +29,9 @@ public class Peer {
     private final QueueStore queueStore = new QueueStore();
 
     private Role role;
+    // TODO this needs to be set
     private State state;
+    // TODO set this with PEER response
     private String leader;
 
     public Peer(int port) {
@@ -54,7 +56,7 @@ public class Peer {
                 new Thread(() -> handleIncomingMessage(socket)).start();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
     }
 
@@ -78,65 +80,12 @@ public class Peer {
                 } catch (NewPeerFoundException | NewClientFoundException e) {
                     System.out.println(e.getMessage());
                     broadcast(msg.serialize(), id.toString());
-                } catch (IllegalArgumentException e) {
-                    contactClient(msg.getSenderId(), new NAckMessage(msg.getUuid()));
+                } catch (NoSuchFieldError e) {
+                    Response res = new NAckMessage(msg.getUuid());
+                    res.setSenderId(id.toString());
+                    contactClient(msg.getSenderId(), res);
                 }
             }
-//                if (type == null) {
-//                    System.out.println("[" + id + "] Unknown message type: " + parts[0]);
-//                    continue;
-//                }
-//
-//                switch (type) {
-//                    case PEER:
-//                        String newId = parts[1];
-//                        String ip = parts[2];
-//                        String port = parts[3];
-//                        String address = ip + ":" + port;
-//
-//                        if (!peerAddresses.containsKey(newId)) {
-//                            peerAddresses.put(newId, address);
-//                            System.out.println("[" + id + "] Discovered new peer: " + newId + " at " + address);
-//                            broadcast("PEER:" + newId + ":" + ip + ":" + port, newId);
-//                            connectToPeer(ip, Integer.parseInt(port));
-//                        }
-//                        break;
-//
-//                    case ADD:
-//                        if (role == Role.LEADER) {
-//                            // start 3PC procedure to add the value
-//                            // TODO implement
-//                            System.out.println("Value " + parts[3] + " added to queue with id " + parts[2]);
-//                            contactClient(parts[1]);
-//
-//                        } else {
-//                            // send it to the leader if possible, otherwise drop it
-//                            if (leader == null) {
-//                                return;
-//                            }
-//
-//                            contact(leader, message);
-//
-//                        }
-//                        break;
-//                    case ADDCLIENT:
-//                        String client_id = parts[1];
-//                        String client_ip = parts[2];
-//                        String client_port = parts[3];
-//                        String client_address = client_ip + ":" + client_port;
-//                        if (!clientAddresses.containsKey(client_id)) {
-//                            clientAddresses.put(client_id, client_address);
-//                            System.out.println(
-//                                    "[" + id + "] Discovered new client: " + client_id + " at " + client_address);
-//                            broadcast("ADDCLIENT:" + client_id + ":" + client_ip + ":" + client_port, null);
-//                        }
-//                        break;
-//
-//                    default:
-//                        System.out.println("[" + id + "] Unknown message type: " + type);
-//                        break;
-//                }
-//            }
         } catch (IOException e) {
             System.err.println("[" + id + "] Peer connection error");
         }
@@ -169,25 +118,6 @@ public class Peer {
         }
     }
 
-//    private void contact(String peer_id, String message) {
-//        if (peerAddresses.getAddress(peer_id) == null) {
-//            return;
-//        }
-//        String peer_info = peerAddresses.getAddress(peer_id);
-//        String values[] = peer_info.split(":");
-//        String peerIP = values[0];
-//        String peerPORT = values[1];
-//        try {
-//            Socket socket = new Socket(peerIP, Integer.parseInt(peerPORT));
-//            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-//            out.println(message);
-//            socket.close();
-//        } catch (IOException e) {
-//            System.out.println("[" + id + "] Failed to send to " + peer_id);
-//        }
-//
-//    }
-
     private void broadcast(String message, String excludeId) {
         for (String entry : peerAddresses.getIds()) {
             String[] values = peerAddresses.getAddress(entry).split(":");
@@ -212,7 +142,7 @@ public class Peer {
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.err.println(e.getMessage());
             }
         }
     }

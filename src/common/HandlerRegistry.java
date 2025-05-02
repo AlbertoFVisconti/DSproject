@@ -19,8 +19,7 @@ public class HandlerRegistry {
     public Optional<Response> handle(Message message) throws NotLeaderException, NewClientFoundException, NewPeerFoundException {
         MsgVisitor handler = handlers.get(message.getType());
         if (handler == null) { throw new UnsupportedOperationException("Unsupported operation!"); }
-        Optional<Response> res = message.accept(handler);
-        return res;
+        return message.accept(handler);
     }
 
     public Message deserialize(String serializedMessage) {

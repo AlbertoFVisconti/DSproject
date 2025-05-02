@@ -2,7 +2,6 @@ package common.messageHandlers;
 
 import common.messages.AckMessage;
 import common.messages.AddClientMessage;
-import common.messages.Message;
 import common.messages.Response;
 import common.util.NewClientFoundException;
 import common.util.NotLeaderException;
@@ -51,5 +50,9 @@ public class AddClientHandler extends Handler<AddClientMessage> {
 
     public Role getRecvRole() {
         return recvRole;
+    }
+
+    public void setRecvRole(Role recvRole) {
+        this.recvRole = recvRole;
     }
 }

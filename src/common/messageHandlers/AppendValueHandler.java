@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class AppendValueHandler extends Handler<AppendValueMessage> {
-    private QueueStore queue;
+    private final QueueStore queue;
     private Role recvRole;
     public AppendValueHandler(QueueStore queue, Role role) {
         this.queue = queue;

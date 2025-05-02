@@ -3,7 +3,6 @@ package common.messages;
 import common.MessageType;
 import common.util.MsgVisitor;
 import common.util.NewClientFoundException;
-import common.util.NewPeerFoundException;
 import common.util.NotLeaderException;
 
 import java.util.Optional;

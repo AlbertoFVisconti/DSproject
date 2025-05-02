@@ -92,7 +92,6 @@ public class Client {
         }
 
         while (true) {
-            // System.out.print("Enter [peerIp peerPort queueId value] or 'quit': ");
             System.out.print("Enter [queueID value] or 'quit': ");
             String line = scanner.nextLine();
             if (line.trim().equalsIgnoreCase("quit")) {
