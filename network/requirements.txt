@@ -1,0 +1,2 @@
+mininet==2.3.0.dev6
+setuptools==69.2.0
