@@ -8,11 +8,14 @@ from mininet.log import setLogLevel, info
 from mininet.cli import CLI
 from mininet.link import TCLink
 from mininet.topo import Topo
+from mininet.term import makeTerm
 
 from mininet.node import OVSSwitch
 
 routers = {}
 hosts={}
+DELAY='50ms'
+LOSS=0.0
 
 
 def ip_to_bits(ip:str)-> str:
@@ -35,6 +38,7 @@ def print_help():
     Remember: 
     Mininet must run as root so run it using the command: sudo venv/bin/python networkEmulator.py N
     To install the dependecies use the command: pip install -r requirements.txt
+    To modify the error rate and delay modify the global variables in this script
     """)
 
 class LinuxRouter(Node):
@@ -49,7 +53,7 @@ class LinuxRouter(Node):
 
 class Topology(Topo):
     def build(self, **params):
-        global routers, hosts
+        global routers, hosts, DELAY, LOSS
         hostNumber = int(params['number'])
         mininet_routers={}
         mininet_hosts={}
@@ -74,7 +78,7 @@ class Topology(Topo):
             host_name=f'h{i}'
             hosts[host_name]={}
             host=self.addHost(host_name)
-            mininet_hosts[host_name]=host
+            mininet_hosts[host_name]=host 
             hosts[host_name]['eth0'] = {
                 "address": f'10.0.{i}.1',
                 "mask": "255.255.255.252"
@@ -91,7 +95,8 @@ class Topology(Topo):
             interface_name="eth1"
             router_ip=routers[router_name][interface_name]["address"]
             router_netmask=ip_to_bits(routers[router_name][interface_name]["mask"]).count('1')
-            self.addLink(switch, mininet_routers[router_name],intfName1=f's1-eth{i}', intfName2=f'{router_name}-{interface_name}', param2={'ip':f'{router_ip}/{router_netmask}'} )
+            self.addLink(switch, mininet_routers[router_name],intfName1=f's1-eth{i}', intfName2=f'{router_name}-{interface_name}', 
+                         param2={'ip':f'{router_ip}/{router_netmask}'}, delay=DELAY,loss=LOSS )
 
         #Connect hosts and routers without switches
         for i in range(1,hostNumber+1):
@@ -112,6 +117,9 @@ def main():
 #START THE MININET EMULATOR
     elif len(sys.argv)==2:
         hostNumber = sys.argv[1]
+        if(int(hostNumber)<2):
+            print("You must have at least 2 host: one Client and one Peer")
+            return
         t = Topology(number=hostNumber)
         hostNumber=int(hostNumber)
         net = Mininet(topo=t, link=TCLink)
@@ -139,8 +147,20 @@ def main():
                 if i!=j:
                     router=net[f'r{i}']
                     router.cmd(f'ip route add 10.0.{j}.0/30 via 192.0.0.{j}')
+    
+        #Create client for H1 and the peer net 
+        h2 = net['h2']
+        makeTerm(h2, cmd="bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000; exec bash'")
+        for i in range(3,hostNumber+1):
+            host_name= f'h{i}'
+            host=net[host_name]
+            makeTerm(host,cmd="bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000 10.0.2.1 5000; exec bash'")
+        h1 = net['h1']
+        makeTerm(h1, cmd="bash -c 'cd ../out/production/progetto1 && java client.Client 6000 10.0.2.1 5000; exec bash'")
 
         CLI(net)
+
+        #Cleanup once Mininet has been quit
         net.stop()
 
 
