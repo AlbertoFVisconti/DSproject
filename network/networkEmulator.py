@@ -117,8 +117,8 @@ def main():
 #START THE MININET EMULATOR
     elif len(sys.argv)==2:
         hostNumber = sys.argv[1]
-        if(int(hostNumber)<2):
-            print("You must have at least 2 host: one Client and one Peer")
+        if(int(hostNumber)<3):
+            print("You must have at least 3 host: two Client and one or more Peer")
             return
         t = Topology(number=hostNumber)
         hostNumber=int(hostNumber)
@@ -148,19 +148,26 @@ def main():
                     router=net[f'r{i}']
                     router.cmd(f'ip route add 10.0.{j}.0/30 via 192.0.0.{j}')
     
-        #Create client for H1 and the peer net 
-        h2 = net['h2']
-        makeTerm(h2, cmd="bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000; exec bash'")
-        for i in range(3,hostNumber+1):
+        #Create client for H1,H2 and the peer net 
+        terminals=[]
+        first_leader_number= 3 
+        first_leader= net[f'h{first_leader_number}']
+        terminals.append(makeTerm(first_leader, cmd="bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000; exec bash'"))
+        for i in range(4,hostNumber+1):
             host_name= f'h{i}'
             host=net[host_name]
-            makeTerm(host,cmd="bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000 10.0.2.1 5000; exec bash'")
+            terminals.append(makeTerm(host,cmd=f"bash -c 'cd ../out/production/progetto1 && java peer.Peer 5000 10.0.{first_leader_number}.1 5000; exec bash'"))
         h1 = net['h1']
-        makeTerm(h1, cmd="bash -c 'cd ../out/production/progetto1 && java client.Client 6000 10.0.2.1 5000; exec bash'")
+        terminals.append(makeTerm(h1, cmd=f"bash -c 'cd ../out/production/progetto1 && java client.Client 10.0.1.1 6000 10.0.{first_leader_number}.1 5000; exec bash'"))
+        h2 = net['h2']
+        terminals.append(makeTerm(h2, cmd=f"bash -c 'cd ../out/production/progetto1 && java client.Client 10.0.2.1 6000 10.0.{first_leader_number}.1 5000; exec bash'"))
 
         CLI(net)
 
         #Cleanup once Mininet has been quit
+        for terminal in terminals:
+            for proc in terminal:
+                proc.terminate()
         net.stop()
 
 

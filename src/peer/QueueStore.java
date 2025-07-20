@@ -9,17 +9,22 @@ public class QueueStore {
         clientQueues = new ConcurrentHashMap<>();
     }
 
-    public void addQueue(String queue) {
-        clientQueues.put(queue, new ConcurrentHashMap<>());
-    }
-    public void addValue(String queueId, String clientId, int value) throws IllegalArgumentException {
-        System.out.println("Adding " + value + " to queue " + queueId);
-        if (!clientQueues.containsKey(queueId)) {
+    public void addQueue(String queueId) {
+        if (clientQueues.containsKey(queueId)) {
+            System.out.println("Already queue with id " + queueId + " exists");
             throw new IllegalArgumentException("No queue with id " + queueId + " exists");
         }
+        System.out.println("Adding queue with id " + queueId);
+        clientQueues.put(queueId, new ConcurrentHashMap<>());
+    }
+    public void addValue(String queueId, String clientId, int value) throws IllegalArgumentException {
+        if (!clientQueues.containsKey(queueId)) {
+            System.out.println("No queue with id " + queueId + " exists");
+            throw new IllegalArgumentException("No queue with id " + queueId + " exists");
+        }
+        System.out.println("Adding " + value + " to queue " + queueId);
         clientQueues.get(queueId).put(clientId, value);
     }
-
     public int readValue(String queueId, String clientId) throws IllegalArgumentException {
         if (!clientQueues.containsKey(queueId)) {
             throw new IllegalArgumentException("No queue with id " + queueId + " exists");

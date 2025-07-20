@@ -10,4 +10,5 @@ public interface MsgVisitor {
     Optional<Response> visit(AddClientMessage message) throws NotLeaderException, NewClientFoundException;
     Optional<Response> visit(AppendValueMessage message) throws NotLeaderException;
     Optional<Response> visit(PeerMessage message);
+    Optional<Response> visit(CreateQueueMessage message) throws NotLeaderException;
 }

@@ -8,6 +8,7 @@ import common.HandlerRegistry;
 import common.MessageType;
 import common.messageHandlers.AddClientHandler;
 import common.messageHandlers.AppendValueHandler;
+import common.messageHandlers.CreateQueueHandler;
 import common.messageHandlers.PeerHandler;
 import common.messages.Message;
 import common.messages.NAckMessage;
@@ -34,6 +35,8 @@ public class Peer {
     // TODO set this with PEER response
     private String leader;
 
+    private List<String> DebugInfo;
+
     public Peer(int port) {
         this.port = port;
         this.role = Role.LEADER;
@@ -41,6 +44,9 @@ public class Peer {
         registry.registerHandler(MessageType.ADDCLIENT, new AddClientHandler(clientAddresses, role));
         registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, role));
         registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses));
+        registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
+
+        this.DebugInfo = new ArrayList<>();
     }
 
     public void start() {
@@ -135,12 +141,17 @@ public class Peer {
             }
         }
     }
+    public void  addDebugInfo(String info) {
+        DebugInfo.add(info);
+    }
 
     private void DebugInfo() {
         while (true) {
-            System.out.println("[" + this.role + "]");
+            for(int i=0;i<DebugInfo.size();i++) {
+                System.out.println(DebugInfo.get(i));
+            }
             try {
-                Thread.sleep(3000);
+                Thread.sleep(200);
             } catch (InterruptedException e) {
                 System.err.println(e.getMessage());
             }

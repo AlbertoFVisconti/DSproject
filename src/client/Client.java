@@ -6,6 +6,7 @@ import common.messageHandlers.NAckHandler;
 import common.MessageType;
 import common.messages.AddClientMessage;
 import common.messages.AppendValueMessage;
+import common.messages.CreateQueueMessage;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -69,19 +70,26 @@ public class Client {
         out.println(appendVal.serialize());
     }
 
+    public void createQueue(PrintWriter out, String queueId) {
+        CreateQueueMessage createQueue = new CreateQueueMessage(UUID.randomUUID(), queueId);
+        createQueue.setSenderId(id.toString());
+        out.println(createQueue.serialize());
+    }
+
     public static void main(String[] args) {
         System.out.print("\033[H\033[2J");
         System.out.flush();
         Scanner scanner = new Scanner(System.in);
-        if (args.length != 3) {
-            System.out.println("Usage: java Client <port> <peerIp> <peerPort>");
+        if (args.length != 4) {
+            System.out.println("Usage: java Client <clientIp> <clientPort> <peerIp> <peerPort>");
             scanner.close();
             return;
         }
-        int port = Integer.parseInt(args[0]);
-        String peerIp = args[1];
-        int peerPort = Integer.parseInt(args[2]);
-        Client client = new Client("localhost", port);
+        String  ip = args[0];
+        int port = Integer.parseInt(args[1]);
+        String peerIp = args[2];
+        int peerPort = Integer.parseInt(args[3]);
+        Client client = new Client(ip, port);
         client.start();
         // First connection
         try(Socket socket = new Socket(peerIp, peerPort)) {
@@ -92,7 +100,7 @@ public class Client {
         }
 
         while (true) {
-            System.out.print("Enter [queueID value] or 'quit': ");
+            System.out.print("Enter 'create [queueId]' or 'add [queueID value]' or 'quit': ");
             String line = scanner.nextLine();
             if (line.trim().equalsIgnoreCase("quit")) {
                 scanner.close();
@@ -100,21 +108,35 @@ public class Client {
             }
 
             String[] parts = line.trim().split("\\s+");
-            if (parts.length != 2) {
-                System.out.println("Invalid input. Please enter exactly 2 values.");
+            if (parts.length < 2 || parts.length > 3) {
+                System.out.println("Invalid input. Please enter either 'create [queueId]' or 'add [queueId value]'.");
                 continue;
             }
+            String command = parts[0];
+
             try (Socket socket = new Socket(peerIp, peerPort)) {
-                String queueId = parts[0];
-                int value = Integer.parseInt(parts[1]);
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                client.appendValue(out, queueId, value);
+
+                if (command.equalsIgnoreCase("create") && parts.length == 2) {
+                    String queueId = parts[1];
+                    client.createQueue(out, queueId);
+                } else if (command.equalsIgnoreCase("add") && parts.length == 3) {
+                    String queueId = parts[1];
+                    int value = Integer.parseInt(parts[2]);
+                    client.appendValue(out, queueId, value);
+                } else {
+                    System.out.println("Invalid command format.");
+                    continue;
+                }
+
                 synchronized (lock) {
                     System.out.println("Sent to " + peerIp + ":" + peerPort);
                     lock.wait();
                 }
             } catch (IOException | InterruptedException e) {
                 System.out.println("Failed to send to " + peerIp + ":" + peerPort);
+            }catch (NumberFormatException e) {
+                System.out.println("Invalid number format for value.");
             }
         }
 
