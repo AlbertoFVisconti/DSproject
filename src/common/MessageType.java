@@ -16,6 +16,10 @@ public enum MessageType {
     //message is PING:TOKEN:LEADER_ID
     //this message is sent by the Peer Leader to prove it's alive
     PING,
+    //message is CANDIDATE:TOKEN:CANDIDATE_ID:VALUE
+    //this message is sent after a Leader's timeout
+    //value is given by the total number of values in every queue, the peer with the highest value wins
+    CANDIDATE,
     ACK,
     NACK
 }

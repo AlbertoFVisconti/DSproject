@@ -36,6 +36,11 @@ public class AbstractMsgVisitor implements MsgVisitor {
         return Optional.empty();
     }
 
+    @Override
+    public Optional<Response> visit(CandidateMessage message) {
+        return Optional.empty();
+    }
+
     public Optional<Response> visit(PeerMessage message) {
         return Optional.empty();
     }
