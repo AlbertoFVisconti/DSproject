@@ -13,6 +13,9 @@ public enum MessageType {
     //message is CREATEQUEUE:TOKEN:CLIENT_ID:QUEUE_ID
     //this message is used to create a single queue
     CREATEQUEUE,
+    //message is PING:TOKEN:LEADER_ID
+    //this message is sent by the Peer Leader to prove it's alive
+    PING,
     ACK,
     NACK
 }

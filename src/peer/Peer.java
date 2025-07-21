@@ -6,10 +6,7 @@ import java.util.*;
 
 import common.HandlerRegistry;
 import common.MessageType;
-import common.messageHandlers.AddClientHandler;
-import common.messageHandlers.AppendValueHandler;
-import common.messageHandlers.CreateQueueHandler;
-import common.messageHandlers.PeerHandler;
+import common.messageHandlers.*;
 import common.messages.Message;
 import common.messages.NAckMessage;
 import common.messages.PeerMessage;
@@ -21,6 +18,7 @@ import raft.Role;
 import tpc.State;
 
 public class Peer {
+    private final String ip;
     private final int port;
     private final UUID id = UUID.randomUUID();
     private final AddressRegistry peerAddresses = new AddressRegistry(); // id -> "ip:port"
@@ -34,24 +32,25 @@ public class Peer {
     private State state;
     // TODO set this with PEER response
     private String leader;
+    private final LeaderHandler leaderHandler;
 
-    private List<String> DebugInfo;
-
-    public Peer(int port) {
+    public Peer(String ip, int port) {
+        this.ip=ip;
         this.port = port;
         this.role = Role.LEADER;
         this.state = State.INIT;
+        this.leaderHandler = new LeaderHandler();
+
         registry.registerHandler(MessageType.ADDCLIENT, new AddClientHandler(clientAddresses, role));
         registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, role));
         registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses));
         registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
-
-        this.DebugInfo = new ArrayList<>();
+        registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
     }
 
     public void start() {
         new Thread(this::listenForMessages).start();
-        new Thread(this::DebugInfo).start();
+        leaderHandler.start(this);
         System.out.println("[" + id + "] Listening on port " + port);
     }
 
@@ -101,7 +100,7 @@ public class Peer {
         try {
             Socket socket = new Socket(host, peerPort);
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            PeerMessage pm = new PeerMessage(UUID.randomUUID(), host, peerPort);
+            PeerMessage pm = new PeerMessage(UUID.randomUUID(), this.ip, this.port);
             pm.setSenderId(id.toString());
             out.println(pm.serialize());
             System.out.println("[" + id + "] Connected to " + host + ":" + peerPort);
@@ -124,7 +123,7 @@ public class Peer {
         }
     }
 
-    private void broadcast(String message, String excludeId) {
+    public void broadcast(String message, String excludeId) {
         for (String entry : peerAddresses.getIds()) {
             String[] values = peerAddresses.getAddress(entry).split(":");
             String peerIP = values[0];
@@ -141,42 +140,40 @@ public class Peer {
             }
         }
     }
-    public void  addDebugInfo(String info) {
-        DebugInfo.add(info);
-    }
-
-    private void DebugInfo() {
-        while (true) {
-            for(int i=0;i<DebugInfo.size();i++) {
-                System.out.println(DebugInfo.get(i));
-            }
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                System.err.println(e.getMessage());
-            }
-        }
-    }
 
     public static void main(String[] args) {
         System.out.print("\033[H\033[2J");
         System.out.flush();
         if (args.length < 1) {
-            System.out.println("Usage: java Peer <port> [peerHost peerPort]");
+            System.out.println("Usage: java Peer <peerIp> <peerPort> <peerHost> <peerPort>");
             return;
         }
 
-        int port = Integer.parseInt(args[0]);
-        Peer peer = new Peer(port);
-        if (args.length == 3) {
+        String peerIp = args[0];
+        int port = Integer.parseInt(args[1]);
+        Peer peer = new Peer(peerIp, port);
+        if (args.length == 4) {
             peer.role = Role.FOLLOWER;
         }
         peer.start();
-        peer.queueStore.addQueue("2");
-        if (args.length == 3) {
-            String peerHost = args[1];
-            int peerPort = Integer.parseInt(args[2]);
+        if (args.length == 4) {
+            String peerHost = args[2];
+            int peerPort = Integer.parseInt(args[3]);
             peer.connectToPeer(peerHost, peerPort);
         }
+    }
+
+
+
+
+
+    //getters and setters
+
+    public Role getRole() {
+        return role;
+    }
+
+    public UUID getId() {
+        return id;
     }
 }

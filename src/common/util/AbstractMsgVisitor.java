@@ -30,6 +30,12 @@ public class AbstractMsgVisitor implements MsgVisitor {
     public Optional<Response> visit(CreateQueueMessage message) throws NotLeaderException {
         return Optional.empty();
     }
+
+    @Override
+    public Optional<Response> visit(PingMessage message) {
+        return Optional.empty();
+    }
+
     public Optional<Response> visit(PeerMessage message) {
         return Optional.empty();
     }

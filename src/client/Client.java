@@ -131,7 +131,12 @@ public class Client {
 
                 synchronized (lock) {
                     System.out.println("Sent to " + peerIp + ":" + peerPort);
-                    lock.wait();
+                    long start = System.currentTimeMillis();
+                    lock.wait(2000); // Wait for up to 2 seconds
+                    long elapsed = System.currentTimeMillis() - start;
+                    if (elapsed >= 2000) {
+                        System.out.println("unable to send");
+                    }
                 }
             } catch (IOException | InterruptedException e) {
                 System.out.println("Failed to send to " + peerIp + ":" + peerPort);
