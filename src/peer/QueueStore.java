@@ -31,4 +31,11 @@ public class QueueStore {
         }
         return clientQueues.get(queueId).get(clientId);
     }
+    public int getValue(){
+        int value = 0;
+        for(ConcurrentHashMap<String, Integer> innerMap : clientQueues.values()){
+            value+= innerMap.size();
+        }
+        return value;
+    }
 }

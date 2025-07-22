@@ -1,8 +1,10 @@
 package peer;
 
+import common.messages.CandidateMessage;
 import common.messages.PingMessage;
 import raft.Role;
 
+import java.util.Random;
 import java.util.UUID;
 
 public class LeaderHandler {
@@ -36,13 +38,16 @@ public class LeaderHandler {
         while (true) {
             synchronized (pingLock) {
                 try {
-                    pingLock.wait(3000);
+                    Random random = new Random();
+                    long waitTime = 2500 + random.nextInt(1001);
+                    pingLock.wait(waitTime);
                     if (pingReceived) {
                         pingReceived = false;
                         System.out.println("Ping received");
                     } else {
                         System.out.println("Ping timeout - leader failure?");
-                        //TODO send CANDIDATE message
+                        CandidateMessage msg = new CandidateMessage(UUID.randomUUID(), peer.getValue());
+                        peer.broadcast(msg.serialize(), "");
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -72,5 +77,6 @@ public class LeaderHandler {
             System.out.println("Ping received");
         }
     }
+
 
 }

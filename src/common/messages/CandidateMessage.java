@@ -24,4 +24,8 @@ public class CandidateMessage extends  Message {
     public Optional<Response> accept(MsgVisitor visitor) throws NotLeaderException, NewClientFoundException, NewPeerFoundException {
         return visitor.visit(this);
     }
+
+    public int getValue() {
+        return value;
+    }
 }

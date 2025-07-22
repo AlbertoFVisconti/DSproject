@@ -46,7 +46,7 @@ public class Peer {
         registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses));
         registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
         registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
-        registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler());
+        registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler(this));
     }
 
     public void start() {
@@ -176,5 +176,17 @@ public class Peer {
 
     public UUID getId() {
         return id;
+    }
+    public int getValue(){
+        return this.queueStore.getValue();
+    }
+    public void setRole(Role role){this.role=role;}
+
+    public void setLeader(String leader) {
+        this.leader = leader;
+    }
+
+    public LeaderHandler getLeaderHandler() {
+        return leaderHandler;
     }
 }
