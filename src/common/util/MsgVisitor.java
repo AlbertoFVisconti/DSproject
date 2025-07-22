@@ -13,4 +13,6 @@ public interface MsgVisitor {
     Optional<Response> visit(CreateQueueMessage message) throws NotLeaderException;
     Optional<Response> visit(PingMessage message);
     Optional<Response> visit(CandidateMessage message);
+    Optional<Response> visit(ReadValueMessage message) throws NotLeaderException;
+    Optional<Response> visit(ValueResponse message);
 }

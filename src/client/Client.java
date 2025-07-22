@@ -4,9 +4,11 @@ import common.HandlerRegistry;
 import common.messageHandlers.AckHandler;
 import common.messageHandlers.NAckHandler;
 import common.MessageType;
+import common.messageHandlers.ValueResponseHandler;
 import common.messages.AddClientMessage;
 import common.messages.AppendValueMessage;
 import common.messages.CreateQueueMessage;
+import common.messages.ReadValueMessage;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,6 +31,7 @@ public class Client {
         this.port = port;
         registry.registerHandler(MessageType.ACK, new AckHandler(lock));
         registry.registerHandler(MessageType.NACK, new NAckHandler(lock));
+        registry.registerHandler(MessageType.VALRES, new ValueResponseHandler(lock));
     }
 
     public void start() {
@@ -76,6 +79,12 @@ public class Client {
         out.println(createQueue.serialize());
     }
 
+    public void readFromQueue(PrintWriter out, String queueId) {
+        ReadValueMessage readQueue = new ReadValueMessage(UUID.randomUUID(), queueId);
+        readQueue.setSenderId(id.toString());
+        out.println(readQueue.serialize());
+    }
+
     public static void main(String[] args) {
         System.out.print("\033[H\033[2J");
         System.out.flush();
@@ -100,7 +109,7 @@ public class Client {
         }
 
         while (true) {
-            System.out.print("Enter 'create [queueId]' or 'add [queueID value]' or 'quit': ");
+            System.out.print("Enter 'create [queueId]' or 'add [queueID value]' or 'read [queueID]' or 'quit': ");
             String line = scanner.nextLine();
             if (line.trim().equalsIgnoreCase("quit")) {
                 scanner.close();
@@ -124,7 +133,11 @@ public class Client {
                     String queueId = parts[1];
                     int value = Integer.parseInt(parts[2]);
                     client.appendValue(out, queueId, value);
-                } else {
+                } else if (command.equalsIgnoreCase("read") && parts.length == 2) {
+                    String queueId = parts[1];
+                    client.readFromQueue(out, queueId);
+                }
+                else {
                     System.out.println("Invalid command format.");
                     continue;
                 }

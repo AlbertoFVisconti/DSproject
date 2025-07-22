@@ -47,6 +47,7 @@ public class Peer {
         registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
         registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
         registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler(this));
+        registry.registerHandler(MessageType.READVALUE, new ReadValueHandler(queueStore, role));
     }
 
     public void start() {
