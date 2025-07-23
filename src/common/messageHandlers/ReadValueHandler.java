@@ -33,7 +33,7 @@ public class ReadValueHandler extends Handler<ReadValueMessage> {
             res.setValue(val);
             return Optional.of(res);
         } catch (IllegalArgumentException e) {
-            throw new NoSuchFieldError("Queue does not exist!");
+            throw new IllegalArgumentException(e.getMessage());
         }
     }
     @Override

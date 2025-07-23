@@ -25,7 +25,7 @@ public class QueueStore {
             throw new IllegalArgumentException("No queue with id " + queueId + " exists");
         }
         System.out.println("Adding " + value + " to queue " + queueId);
-        clientQueues.computeIfAbsent(queueId, k -> new ConcurrentHashMap<>())
+        clientQueues.get(queueId)
                 .computeIfAbsent(clientId, k -> (new LinkedList<>()))
                 .addFirst(value);
     }

@@ -25,12 +25,10 @@ public class AppendValueHandler extends Handler<AppendValueMessage> {
             throw new NotLeaderException("Peer is not the leader.");
         }
         try {
-            //TODO if there is no leader do not send it (let it timeout)
-            //if there is leader send it to him
             queue.addValue(queueId, clientId, value);
             return Optional.of(new AckMessage(message.getUuid()));
         } catch (IllegalArgumentException e) {
-            throw new NoSuchFieldError("Queue with id " + queueId + " does not exist");
+            throw new IllegalArgumentException("Queue with id " + queueId + " does not exist");
         }
     }
 

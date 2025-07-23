@@ -17,6 +17,8 @@ import common.util.NotLeaderException;
 import raft.Role;
 import tpc.State;
 
+import javax.print.attribute.standard.MediaSize;
+
 public class Peer {
     private final String ip;
     private final int port;
@@ -89,8 +91,9 @@ public class Peer {
                 } catch (NewPeerFoundException | NewClientFoundException e) {
                     System.out.println(e.getMessage());
                     broadcast(msg.serialize(), id.toString());
-                } catch (NoSuchFieldError e) {
-                    Response res = new NAckMessage(msg.getUuid());
+                } catch (IllegalArgumentException e) {
+                    NAckMessage res = new NAckMessage(msg.getUuid());
+                    res.setError(e.getMessage());
                     res.setSenderId(id.toString());
                     contactClient(msg.getSenderId(), res);
                 }

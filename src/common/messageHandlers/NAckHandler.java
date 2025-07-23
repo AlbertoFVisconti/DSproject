@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public class NAckHandler extends Handler<NAckMessage> {
     private final Object lock;
+
     public NAckHandler(Object lock) {
         super();
         this.lock = lock;
@@ -15,7 +16,7 @@ public class NAckHandler extends Handler<NAckMessage> {
     @Override
     public Optional<Response> visit(NAckMessage message) {
         // TODO maybe convert this to an error message
-        System.out.println("Received NACK from " + message.getSenderId());
+        System.out.println("Received NACK from " + message.getSenderId() + ": " + message.getError());
         synchronized (lock) {
             lock.notifyAll();
         }
@@ -27,7 +28,9 @@ public class NAckHandler extends Handler<NAckMessage> {
         String[] parts = payload.split(":");
         UUID id = UUID.fromString(parts[0]);
         String senderId = parts[1];
+        String error = parts[2];
         NAckMessage msg = new NAckMessage(id);
+        msg.setError(error);
         msg.setSenderId(senderId);
         return msg;
     }

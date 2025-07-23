@@ -136,8 +136,7 @@ public class Client {
                 } else if (command.equalsIgnoreCase("read") && parts.length == 2) {
                     String queueId = parts[1];
                     client.readFromQueue(out, queueId);
-                }
-                else {
+                } else {
                     System.out.println("Invalid command format.");
                     continue;
                 }
@@ -157,6 +156,7 @@ public class Client {
                 System.out.println("Invalid number format for value.");
             }
         }
-
+        System.out.println("Bye!");
+        System.exit(0);
     }
 }

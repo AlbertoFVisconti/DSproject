@@ -7,12 +7,22 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class NAckMessage extends Response {
+    public String error;
+
+    public String getError() {
+        return this.error;
+    }
+
+    public void setError(String errorMsg) {
+        this.error = errorMsg;
+    }
+
     public NAckMessage(UUID uuid) {
         super(uuid, MessageType.NACK);
     }
     @Override
     public String serialize() {
-        return getType().name() + ":" + getUuid() + ":" + getSenderId();
+        return getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getError();
     }
 
     @Override
