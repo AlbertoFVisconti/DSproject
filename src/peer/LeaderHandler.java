@@ -12,9 +12,11 @@ public class LeaderHandler {
     private final Object pingLock=new Object();
     private boolean pingReceived = false;
     private Peer peer;
+    private boolean listening = false;
 
     public void start(Peer peer) {
         this.peer = peer;
+        this.listening = true;
         if (peer.getRole() == Role.LEADER) {
             this.thread=new Thread(this::leaderLogic);
         } else if (peer.getRole() ==Role.FOLLOWER) {
@@ -24,18 +26,17 @@ public class LeaderHandler {
     }
     public void stop(){
         try {
+            this.listening = false;
+            this.thread.interrupt();
             this.thread.join();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println("Error interrupting leader/follower thread");
         }
     }
-    public void update(Peer peer) {
-        this.stop();
-        this.start(peer);
-    }
+
     public void followerLogic(){
-        while (true) {
+        while (listening) {
             synchronized (pingLock) {
                 try {
                     Random random = new Random();
@@ -43,11 +44,15 @@ public class LeaderHandler {
                     pingLock.wait(waitTime);
                     if (pingReceived) {
                         pingReceived = false;
-                        System.out.println("Ping received");
                     } else {
-                        System.out.println("Ping timeout - leader failure?");
+                        System.out.println("Ping timeout - leader failure? Candidating");
                         CandidateMessage msg = new CandidateMessage(UUID.randomUUID(), peer.getValue());
+                        msg.setSenderId(peer.getId().toString());
                         peer.broadcast(msg.serialize(), "");
+                        peer.setRole(Role.LEADER);
+                        peer.setLeader(peer.getId().toString());
+                        this.listening=false;
+                        return;
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -58,14 +63,13 @@ public class LeaderHandler {
     }
 
     public void leaderLogic(){
-        while(true){
+        while(listening){
             PingMessage msg= new PingMessage(UUID.randomUUID(), peer.getId().toString());
             peer.broadcast(msg.serialize(), peer.getId().toString());
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.out.println("Leader thread interrupted");
                 break;
             }
 

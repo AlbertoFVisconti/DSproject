@@ -26,6 +26,8 @@ public class Peer {
     // TODO possible singleton for these two
     private final HandlerRegistry registry = new HandlerRegistry();
     private final QueueStore queueStore = new QueueStore();
+    private final Object writingLock = new Object();
+    private final Object roleLock = new Object();
 
     private Role role;
     // TODO this needs to be set
@@ -99,45 +101,51 @@ public class Peer {
     }
 
     public void connectToPeer(String host, int peerPort) {
-        try {
-            Socket socket = new Socket(host, peerPort);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            PeerMessage pm = new PeerMessage(UUID.randomUUID(), this.ip, this.port);
-            pm.setSenderId(id.toString());
-            out.println(pm.serialize());
-            System.out.println("[" + id + "] Connected to " + host + ":" + peerPort);
-            socket.close();
-        } catch (IOException e) {
-            System.out.println("[" + id + "] Failed to connect to " + host + ":" + peerPort);
+        synchronized (writingLock) {
+            try {
+                Socket socket = new Socket(host, peerPort);
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                PeerMessage pm = new PeerMessage(UUID.randomUUID(), this.ip, this.port);
+                pm.setSenderId(id.toString());
+                out.println(pm.serialize());
+                System.out.println("[" + id + "] Connected to " + host + ":" + peerPort);
+                socket.close();
+            } catch (IOException e) {
+                System.out.println("[" + id + "] Failed to connect to " + host + ":" + peerPort);
+            }
         }
     }
 
     public void contactClient(String id, Message message) {
-        String client_ip = clientAddresses.getAddress(id).split(":")[0];
-        int client_port = Integer.parseInt(clientAddresses.getAddress(id).split(":")[1]);
-        try {
-            Socket socket = new Socket(client_ip, client_port);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(message.serialize());
-            socket.close();
-        } catch (IOException e) {
-            System.out.println("[" + id + "] Failed to connect to " + client_ip + ":" + client_port);
-        }
+        synchronized (writingLock) {
+            String client_ip = clientAddresses.getAddress(id).split(":")[0];
+            int client_port = Integer.parseInt(clientAddresses.getAddress(id).split(":")[1]);
+            try {
+                Socket socket = new Socket(client_ip, client_port);
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                out.println(message.serialize());
+                socket.close();
+            } catch (IOException e) {
+                System.out.println("[" + id + "] Failed to connect to " + client_ip + ":" + client_port);
+            }
+}
     }
 
     public void broadcast(String message, String excludeId) {
-        for (String entry : peerAddresses.getIds()) {
-            String[] values = peerAddresses.getAddress(entry).split(":");
-            String peerIP = values[0];
-            String peerPORT = values[1];
-            if (!entry.equals(excludeId)) {
-                try {
-                    Socket socket = new Socket(peerIP, Integer.parseInt(peerPORT));
-                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    out.println(message);
-                    socket.close();
-                } catch (IOException e) {
-                    System.out.println("[" + id + "] Failed to send to " + entry);
+        synchronized (writingLock) {
+            for (String entry : peerAddresses.getIds()) {
+                String[] values = peerAddresses.getAddress(entry).split(":");
+                String peerIP = values[0];
+                String peerPORT = values[1];
+                if (!entry.equals(excludeId)) {
+                    try {
+                        Socket socket = new Socket(peerIP, Integer.parseInt(peerPORT));
+                        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                        out.println(message);
+                        socket.close();
+                    } catch (IOException e) {
+                        System.out.println("[" + id + "] Failed to send to " + entry);
+                    }
                 }
             }
         }
@@ -172,8 +180,9 @@ public class Peer {
     //getters and setters
 
     public Role getRole() {
-        return role;
+        synchronized (roleLock){return role;}
     }
+    public void setRole(Role role){synchronized (roleLock){this.role=role;}}
 
     public UUID getId() {
         return id;
@@ -181,10 +190,13 @@ public class Peer {
     public int getValue(){
         return this.queueStore.getValue();
     }
-    public void setRole(Role role){this.role=role;}
+
 
     public void setLeader(String leader) {
         this.leader = leader;
+    }
+    public String getLeader() {
+        return this.leader;
     }
 
     public LeaderHandler getLeaderHandler() {
