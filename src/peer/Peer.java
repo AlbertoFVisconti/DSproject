@@ -47,7 +47,7 @@ public class Peer {
 
         registry.registerHandler(MessageType.ADDCLIENT, new AddClientHandler(clientAddresses, role));
         registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, role));
-        registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses));
+        registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses, this));
         registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
         registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
         registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler(this));
@@ -155,8 +155,6 @@ public class Peer {
     }
 
     public static void main(String[] args) {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
         if (args.length < 1) {
             System.out.println("Usage: java Peer <peerIp> <peerPort> <peerHost> <peerPort>");
             return;
@@ -205,4 +203,6 @@ public class Peer {
     public LeaderHandler getLeaderHandler() {
         return leaderHandler;
     }
+    public String getIp() {return this.ip;}
+    public int getPort() {return this.port;}
 }

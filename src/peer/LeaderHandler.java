@@ -78,7 +78,6 @@ public class LeaderHandler {
     public void receivedPing(){
         synchronized (pingLock) {
             pingReceived = true;
-            System.out.println("Ping received");
         }
     }
 

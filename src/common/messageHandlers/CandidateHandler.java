@@ -53,6 +53,7 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
             new Thread(this::Timer).start();
             if(msg.getValue()< peer.getValue()){
                 CandidateMessage cmsg = new CandidateMessage(msg.getUuid(), peer.getValue());
+                cmsg.setSenderId(this.peer.getId().toString());
                 peer.broadcast(cmsg.serialize(), "");
                 synchronized (lock) {this.possibleLeader=true;}
                 System.out.println("Candidating as a Leader");

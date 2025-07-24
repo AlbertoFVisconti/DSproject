@@ -4,15 +4,17 @@ import common.messages.PeerMessage;
 import common.messages.Response;
 import common.util.NewPeerFoundException;
 import peer.AddressRegistry;
+import peer.Peer;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public class PeerHandler extends Handler<PeerMessage> {
     AddressRegistry peerRegistry;
-
-    public PeerHandler(AddressRegistry registry) {
+    Peer peer;
+    public PeerHandler(AddressRegistry registry, Peer peer) {
         this.peerRegistry = registry;
+        this.peer = peer;
     }
 
     @Override
@@ -22,9 +24,11 @@ public class PeerHandler extends Handler<PeerMessage> {
         int port = msg.getPort();
         if(peerRegistry.getAddress(id) == null) {
             peerRegistry.addEntry(id, ip + ":" + port);
-            throw new NewPeerFoundException("New peer " + id + " found. Forwarding to all peers.");
+            PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
+            peerMessage.setSenderId(this.peer.getId().toString());
+            peer.broadcast(peerMessage.serialize(),"");
+            throw new NewPeerFoundException("New peer " + id + ip + " found. Forwarding to all peers.");
         }
-        peerRegistry.addEntry(id, ip + ":" + port);
         return Optional.empty();
     }
     @Override

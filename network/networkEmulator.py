@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node
@@ -182,7 +183,8 @@ def main():
                 cmd=f"bash -c 'cd ../out/production/progetto1 && java peer.Peer 10.0.{first_leader_number}.1 5000; exec bash'",
             )
         )
-        for i in range(4, hostNumber + 1):
+        for i in range(first_leader_number + 1, hostNumber + 1):
+            time.sleep(1)
             host_name = f"h{i}"
             host = net[host_name]
             terminals.append(
