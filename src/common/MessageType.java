@@ -22,6 +22,9 @@ public enum MessageType {
     //this message is sent after a Leader's timeout
     //value is given by the total number of values in every queue, the peer with the highest value wins
     CANDIDATE,
+    //message is UPDATE:TOKEN:VALUE:QUEUESTORE
+    //this message is sent to a peer joining the network to bring it up to date with the state of the queues
+    UPDATE,
     ACK,
     NACK
 }

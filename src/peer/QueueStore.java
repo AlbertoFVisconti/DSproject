@@ -1,5 +1,6 @@
 package peer;
 
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -39,10 +40,51 @@ public class QueueStore {
         return clientQueues.get(queueId).get(clientId).getFirst();
     }
     public int getValue(){
-        int value = 0;
+        int value = clientQueues.size();
         for(ConcurrentHashMap<String, LinkedList<Integer>> innerMap : clientQueues.values()){
             value += innerMap.size();
         }
         return value;
+    }
+    public String serialize(ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> clientQ) {
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        String serialized;
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(byteOut);
+            out.writeObject(clientQ);
+            out.close();
+            serialized = Base64.getEncoder().encodeToString(byteOut.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return serialized;
+    }
+
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> deserialize(String serialized) {
+        byte[] data = Base64.getDecoder().decode(serialized);
+        ObjectInputStream in = null;
+        ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> map;
+        try {
+            in = new ObjectInputStream(new ByteArrayInputStream(data));
+            map = (ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>>) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return map;
+
+    }
+
+    //getters and setters
+
+
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> getClientQueues() {
+        synchronized (clientQueues) {
+            return clientQueues;
+        }
+    }
+    public void setClientQueues(ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> clientQueues) {
+        synchronized (clientQueues) {
+            this.clientQueues = clientQueues;
+        }
     }
 }

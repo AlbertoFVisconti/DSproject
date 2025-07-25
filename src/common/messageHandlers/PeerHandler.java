@@ -2,6 +2,7 @@ package common.messageHandlers;
 
 import common.messages.PeerMessage;
 import common.messages.Response;
+import common.messages.UpdateMessage;
 import common.util.NewPeerFoundException;
 import peer.AddressRegistry;
 import peer.Peer;
@@ -22,12 +23,18 @@ public class PeerHandler extends Handler<PeerMessage> {
         String id = msg.getSenderId();
         String ip = msg.getIp();
         int port = msg.getPort();
+        if(peer.getValue()>0){
+            UpdateMessage updateMessage=new UpdateMessage(this.peer.getId(), peer.getValue(), peer.getQueueStore(), peer.getQueueStore().getClientQueues());
+            updateMessage.setSenderId(this.peer.getId().toString());
+            peer.contactPeer(msg.getSenderId(),updateMessage);
+        }
         if(peerRegistry.getAddress(id) == null) {
             peerRegistry.addEntry(id, ip + ":" + port);
             PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
             peerMessage.setSenderId(this.peer.getId().toString());
-            peer.broadcast(peerMessage.serialize(),"");
+            peer.contactPeer(msg.getSenderId(),peerMessage);
             throw new NewPeerFoundException("New peer " + id + ip + " found. Forwarding to all peers.");
+
         }
         return Optional.empty();
     }

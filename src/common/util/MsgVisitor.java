@@ -15,4 +15,5 @@ public interface MsgVisitor {
     Optional<Response> visit(CandidateMessage message);
     Optional<Response> visit(ReadValueMessage message) throws NotLeaderException;
     Optional<Response> visit(ValueResponse message);
+    Optional<Response> visit(UpdateMessage message);
 }

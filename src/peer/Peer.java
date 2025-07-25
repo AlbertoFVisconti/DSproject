@@ -52,6 +52,7 @@ public class Peer {
         registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
         registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler(this));
         registry.registerHandler(MessageType.READVALUE, new ReadValueHandler(queueStore, role));
+        registry.registerHandler(MessageType.UPDATE, new UpdateHandler(this.queueStore));
     }
 
     public void start() {
@@ -148,8 +149,29 @@ public class Peer {
                         socket.close();
                     } catch (IOException e) {
                         System.out.println("[" + id + "] Failed to send to " + entry);
+                        this.peerAddresses.removeEntry(entry);
                     }
                 }
+            }
+        }
+    }
+    public void contactPeer(String id, Message message) {
+        synchronized (writingLock) {
+            if(peerAddresses.getIds().contains(id)) {
+                String peerIP = peerAddresses.getAddress(id).split(":")[0];
+                String peerPORT = peerAddresses.getAddress(id).split(":")[1];
+                try {
+                    Socket socket = new Socket(peerIP, Integer.parseInt(peerPORT));
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                    out.println(message.serialize());
+                    socket.close();
+                }catch (IOException e) {
+                    System.out.println("[" + id + "] Failed to send to " + id);
+                    this.peerAddresses.removeEntry(id);
+                }
+            }
+            else{
+                System.out.println("[" + id + "] Peer " + id + " not found");
             }
         }
     }
@@ -205,4 +227,8 @@ public class Peer {
     }
     public String getIp() {return this.ip;}
     public int getPort() {return this.port;}
+
+    public QueueStore getQueueStore() {
+        return queueStore;
+    }
 }

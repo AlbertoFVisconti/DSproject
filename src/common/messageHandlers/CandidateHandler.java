@@ -1,8 +1,6 @@
 package common.messageHandlers;
 
-import common.messages.CandidateMessage;
-import common.messages.CreateQueueMessage;
-import common.messages.Response;
+import common.messages.*;
 import common.util.NewClientFoundException;
 import common.util.NewPeerFoundException;
 import common.util.NotLeaderException;
@@ -57,6 +55,9 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
                 peer.broadcast(cmsg.serialize(), "");
                 synchronized (lock) {this.possibleLeader=true;}
                 System.out.println("Candidating as a Leader");
+                UpdateMessage updateMessage=new UpdateMessage(this.peer.getId(), peer.getValue(), peer.getQueueStore(), peer.getQueueStore().getClientQueues());
+                updateMessage.setSenderId(this.peer.getId().toString());
+                peer.broadcast(updateMessage.serialize(), "");
                 return Optional.empty();
             }
         }
@@ -67,6 +68,10 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
                 peer.setRole(Role.FOLLOWER);
                 peer.setLeader(msg.getSenderId());
                 this.possibleLeader=false;
+                //ask for update with peer message if not up to date
+                PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
+                peerMessage.setSenderId(this.peer.getId().toString());
+                peer.contactPeer(msg.getSenderId(),peerMessage);
             }
         }
 

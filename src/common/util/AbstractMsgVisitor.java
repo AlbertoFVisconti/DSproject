@@ -53,4 +53,7 @@ public class AbstractMsgVisitor implements MsgVisitor {
     public Optional<Response> visit(ValueResponse message) {
         return Optional.empty();
     }
+
+    @Override
+    public Optional<Response> visit(UpdateMessage message) {return Optional.empty(); }
 }
