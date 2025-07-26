@@ -22,7 +22,6 @@ public class CreateQueueHandler extends Handler<CreateQueueMessage> {
 
     public Optional<Response> visit(CreateQueueMessage message) throws NotLeaderException {
         String queueId = message.getQueueId();
-        System.out.println("Recived message: "+message.serialize());
         if (peer.getRole() == Role.LEADER && message.getLeaderId()==null) {
             CreateQueueMessage createQueueMessage = new CreateQueueMessage(message.getUuid(),queueId,this.peer.getId().toString());
             createQueueMessage.setSenderId(message.getSenderId());

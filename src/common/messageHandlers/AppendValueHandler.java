@@ -22,7 +22,6 @@ public class AppendValueHandler extends Handler<AppendValueMessage> {
         String queueId = message.getQueueId();
         String clientId = message.getSenderId();
         int value = message.getValue();
-        System.out.println("Recived message: "+message.serialize());
         if (peer.getRole() == Role.LEADER && message.getLeaderId()==null) {
             AppendValueMessage appendValueMessage= new AppendValueMessage(message.getUuid(), queueId, value, peer.getId().toString());
             appendValueMessage.setSenderId(clientId);

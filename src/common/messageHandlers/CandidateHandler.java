@@ -8,30 +8,30 @@ import peer.LeaderHandler;
 import peer.Peer;
 import raft.Role;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class CandidateHandler extends  Handler<CandidateMessage>{
     private boolean received=false;
     private final Peer peer;
-    private int highest=-1;
-    private boolean possibleLeader=false;
-    private final Object lock=new Object();
+    private final List<CandidateMessage> candidates=new ArrayList<>();
+    private boolean election;
 
     private void Timer() {
         try {
             peer.getLeaderHandler().stop();
             Thread.sleep(3000);
-            synchronized (lock){
-                if(possibleLeader){
-                    peer.setRole(Role.LEADER);
-                    peer.setLeader(peer.getId().toString());
-                }
-                System.out.println("Becoming: "+peer.getRole()+". Leader is: "+peer.getLeader());
-                this.highest=-1;
+            synchronized (candidates) {
+                this.election=false;
                 this.received=false;
-                this.possibleLeader=false;
-                peer.getLeaderHandler().start(peer);
+                Message best = Collections.max(candidates, Comparator
+                        .comparingInt(CandidateMessage::getValue)
+                        .thenComparing(Message::getSenderId));
+                this.peer.setLeader(best.getSenderId());
+                if(this.peer.getId().toString().compareTo(best.getSenderId()) == 0){ this.peer.setRole(Role.LEADER);}
+                else this.peer.setRole(Role.FOLLOWER);
+                this.candidates.clear();
+                this.peer.getLeaderHandler().start(this.peer);
+                System.out.println(this.peer.getRole()+": "+"leader is "+this.peer.getLeader());
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -44,41 +44,31 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
     }
 
     public Optional<Response> visit(CandidateMessage msg){
-        System.out.println("Candidate message received");
-        System.out.println(peer.getId()+": "+msg.serialize());
-        System.out.println(msg.getSenderId().compareTo(peer.getId().toString()));
-        System.out.println(msg.getValue()+":" +peer.getValue());
         if(!received){
             received=true;
+            this.election=true;
             new Thread(this::Timer).start();
             if(msg.getValue()< peer.getValue()){
                 CandidateMessage cmsg = new CandidateMessage(msg.getUuid(), peer.getValue());
                 cmsg.setSenderId(this.peer.getId().toString());
                 peer.broadcast(cmsg.serialize(), "");
-                synchronized (lock) {this.possibleLeader=true;}
-                System.out.println("Candidating as a Leader");
                 UpdateMessage updateMessage=new UpdateMessage(this.peer.getId(), peer.getValue(), peer.getQueueStore(), peer.getQueueStore().getClientQueues());
                 updateMessage.setSenderId(this.peer.getId().toString());
                 peer.broadcast(updateMessage.serialize(), "");
                 return Optional.empty();
             }
         }
-        if((msg.getValue()==peer.getValue() && msg.getSenderId().compareTo(peer.getId().toString()) > 0)
-        || (msg.getValue()> peer.getValue() && msg.getValue()> highest)){
-            synchronized(lock){
-                System.out.println("becoming follower");
-                highest=msg.getValue();
-                peer.setRole(Role.FOLLOWER);
-                peer.setLeader(msg.getSenderId());
-                this.possibleLeader=false;
-                //ask for update with peer message if not up to date
-                PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
-                peerMessage.setSenderId(this.peer.getId().toString());
-                peer.contactPeer(msg.getSenderId(),peerMessage);
+        synchronized (candidates){
+            if(election){
+                candidates.add(msg);
             }
         }
-
-
+        if(msg.getValue()> peer.getValue()){
+            //ask for update with peer message if not up to date
+            PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
+            peerMessage.setSenderId(this.peer.getId().toString());
+            peer.contactPeer(msg.getSenderId(),peerMessage);
+        }
 
         return Optional.empty();
     }

@@ -2,6 +2,7 @@ package peer;
 
 import common.messages.CandidateMessage;
 import common.messages.PingMessage;
+import common.messages.UpdateMessage;
 import raft.Role;
 
 import java.util.Random;
@@ -13,6 +14,7 @@ public class LeaderHandler {
     private boolean pingReceived = false;
     private Peer peer;
     private boolean listening = false;
+    private int counter=0;
 
     public void start(Peer peer) {
         this.peer = peer;
@@ -40,11 +42,12 @@ public class LeaderHandler {
             synchronized (pingLock) {
                 try {
                     Random random = new Random();
-                    long waitTime = 2500 + random.nextInt(1001);
+                    long waitTime = 2500+ random.nextInt(1001);
                     pingLock.wait(waitTime);
                     if (pingReceived) {
                         pingReceived = false;
                     } else {
+                        this.listening=false;
                         this.peer.setLeader(null);
                         System.out.println("Ping timeout - leader failure? Candidating");
                         CandidateMessage msg = new CandidateMessage(UUID.randomUUID(), peer.getValue());
@@ -52,7 +55,6 @@ public class LeaderHandler {
                         peer.broadcast(msg.serialize(), "");
                         peer.setRole(Role.LEADER);
                         peer.setLeader(peer.getId().toString());
-                        this.listening=false;
                         return;
                     }
                 } catch (InterruptedException e) {
@@ -69,6 +71,12 @@ public class LeaderHandler {
             peer.broadcast(msg.serialize(), peer.getId().toString());
             try {
                 Thread.sleep(500);
+                counter++;
+                if(counter==3){
+                    UpdateMessage updateMessage= new UpdateMessage(UUID.randomUUID(), peer.getValue(), peer.getQueueStore(),peer.getQueueStore().getClientQueues());
+                    peer.broadcast(updateMessage.serialize(),this.peer.getId().toString());
+                    counter=0;
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -85,5 +93,7 @@ public class LeaderHandler {
         this.peer.setLeader(leader_id);
     }
 
-
+    public boolean isListening() {
+        synchronized (pingLock) {return listening;}
+    }
 }

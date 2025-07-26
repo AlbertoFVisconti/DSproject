@@ -15,7 +15,8 @@ public class PingHandler extends Handler<PingMessage> {
     }
     @Override
     public Optional<Response> visit(PingMessage message) {
-        leaderHandler.setLeader(message.getLeader_uuid());
+        if(this.leaderHandler.isListening()){leaderHandler.setLeader(message.getLeader_uuid());}
+        this.leaderHandler.receivedPing();
         return Optional.empty();
     }
     @Override
@@ -25,7 +26,6 @@ public class PingHandler extends Handler<PingMessage> {
         String leaderId = parts[1];
         PingMessage msg=new PingMessage(id, leaderId);
         msg.setSenderId(leaderId);
-        this.leaderHandler.receivedPing();
         return msg;
     }
 }
