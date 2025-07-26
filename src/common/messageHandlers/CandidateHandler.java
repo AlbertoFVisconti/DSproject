@@ -46,6 +46,8 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
     public Optional<Response> visit(CandidateMessage msg){
         System.out.println("Candidate message received");
         System.out.println(peer.getId()+": "+msg.serialize());
+        System.out.println(msg.getSenderId().compareTo(peer.getId().toString()));
+        System.out.println(msg.getValue()+":" +peer.getValue());
         if(!received){
             received=true;
             new Thread(this::Timer).start();
@@ -64,6 +66,7 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
         if((msg.getValue()==peer.getValue() && msg.getSenderId().compareTo(peer.getId().toString()) > 0)
         || (msg.getValue()> peer.getValue() && msg.getValue()> highest)){
             synchronized(lock){
+                System.out.println("becoming follower");
                 highest=msg.getValue();
                 peer.setRole(Role.FOLLOWER);
                 peer.setLeader(msg.getSenderId());

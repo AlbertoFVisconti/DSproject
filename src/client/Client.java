@@ -68,13 +68,13 @@ public class Client {
     }
 
     public void appendValue(PrintWriter out, String queueId, int value) {
-        AppendValueMessage appendVal = new AppendValueMessage(UUID.randomUUID(), queueId, value);
+        AppendValueMessage appendVal = new AppendValueMessage(UUID.randomUUID(), queueId, value, null);
         appendVal.setSenderId(id.toString());
         out.println(appendVal.serialize());
     }
 
     public void createQueue(PrintWriter out, String queueId) {
-        CreateQueueMessage createQueue = new CreateQueueMessage(UUID.randomUUID(), queueId);
+        CreateQueueMessage createQueue = new CreateQueueMessage(UUID.randomUUID(), queueId,null);
         createQueue.setSenderId(id.toString());
         out.println(createQueue.serialize());
     }

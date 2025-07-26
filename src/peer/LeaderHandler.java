@@ -45,6 +45,7 @@ public class LeaderHandler {
                     if (pingReceived) {
                         pingReceived = false;
                     } else {
+                        this.peer.setLeader(null);
                         System.out.println("Ping timeout - leader failure? Candidating");
                         CandidateMessage msg = new CandidateMessage(UUID.randomUUID(), peer.getValue());
                         msg.setSenderId(peer.getId().toString());
@@ -79,6 +80,9 @@ public class LeaderHandler {
         synchronized (pingLock) {
             pingReceived = true;
         }
+    }
+    public void setLeader(String leader_id){
+        this.peer.setLeader(leader_id);
     }
 
 

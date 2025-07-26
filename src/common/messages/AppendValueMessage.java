@@ -10,11 +10,13 @@ import java.util.UUID;
 public class AppendValueMessage extends Message {
     private final String queueId;
     private final int value;
+    private final String leaderId;
 
-    public AppendValueMessage(UUID uuid, String queueId, int value) {
+    public AppendValueMessage(UUID uuid, String queueId, int value, String leaderId) {
         super(uuid, MessageType.APPENDVALUE);
         this.value = value;
         this.queueId = queueId;
+        this.leaderId = leaderId;
     }
 
     public int getValue() {
@@ -23,9 +25,13 @@ public class AppendValueMessage extends Message {
     public String getQueueId() {
         return queueId;
     }
+    public String getLeaderId() {return leaderId;}
     @Override
     public String serialize() {
-        return getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId() + ":" + getValue();
+        String res= getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId() + ":" + getValue();
+        if(leaderId != null) { res= res+":"+leaderId; }
+        return res;
+
     }
 
     @Override

@@ -11,17 +11,22 @@ import java.util.UUID;
 
 public class CreateQueueMessage extends Message{
     private final String queueId;
+    private String leaderId;
 
-    public CreateQueueMessage(UUID uuid, String queueId) {
+    public CreateQueueMessage(UUID uuid, String queueId, String leader_id) {
         super(uuid, MessageType.CREATEQUEUE);
         this.queueId = queueId;
+        this.leaderId = leader_id;
     }
     public String getQueueId() {
         return queueId;
     }
+    public String getLeaderId() {return leaderId;}
     @Override
     public String serialize() {
-        return getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId() ;
+        String res=getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId();
+        if(leaderId != null) { res= res+":"+leaderId; }
+        return res;
     }
 
     @Override

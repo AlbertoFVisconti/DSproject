@@ -15,6 +15,7 @@ public class PingHandler extends Handler<PingMessage> {
     }
     @Override
     public Optional<Response> visit(PingMessage message) {
+        leaderHandler.setLeader(message.getLeader_uuid());
         return Optional.empty();
     }
     @Override

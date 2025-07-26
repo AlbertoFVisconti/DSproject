@@ -7,10 +7,11 @@ public enum MessageType {
     // message is ADD_CLIENT:CLIENT_ID:CLIENT_IP:CLIENT_PORT
     // this message is used to add a client to the client list
     ADDCLIENT,
-    // message is APPENDVALUE:TOKEN:CLIENT_ID:QUEUE_ID:VALUE
+    // message is APPENDVALUE:TOKEN:CLIENT_ID:QUEUE_ID:VALUE:(?LEADER_ID)
     // this message is used to add a single value to a specific queue
+    // the LEADER_ID field is optional and is added by the sharing it
     APPENDVALUE,
-    //message is CREATEQUEUE:TOKEN:CLIENT_ID:QUEUE_ID
+    //message is CREATEQUEUE:TOKEN:CLIENT_ID:QUEUE_ID:(?LEADER_ID)
     //this message is used to create a single queue
     CREATEQUEUE,
     READVALUE,

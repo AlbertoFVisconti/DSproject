@@ -15,7 +15,6 @@ import common.util.NewClientFoundException;
 import common.util.NewPeerFoundException;
 import common.util.NotLeaderException;
 import raft.Role;
-import tpc.State;
 
 import javax.print.attribute.standard.MediaSize;
 
@@ -32,9 +31,6 @@ public class Peer {
     private final Object roleLock = new Object();
 
     private Role role;
-    // TODO this needs to be set
-    private State state;
-    // TODO set this with PEER response
     private String leader;
     private final LeaderHandler leaderHandler;
 
@@ -42,16 +38,15 @@ public class Peer {
         this.ip=ip;
         this.port = port;
         this.role = Role.LEADER;
-        this.state = State.INIT;
         this.leaderHandler = new LeaderHandler();
 
         registry.registerHandler(MessageType.ADDCLIENT, new AddClientHandler(clientAddresses, role));
-        registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, role));
+        registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, this));
         registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses, this));
-        registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, role));
+        registry.registerHandler(MessageType.CREATEQUEUE, new CreateQueueHandler(queueStore, this));
         registry.registerHandler(MessageType.PING, new PingHandler(leaderHandler));
         registry.registerHandler(MessageType.CANDIDATE, new CandidateHandler(this));
-        registry.registerHandler(MessageType.READVALUE, new ReadValueHandler(queueStore, role));
+        registry.registerHandler(MessageType.READVALUE, new ReadValueHandler(queueStore, this));
         registry.registerHandler(MessageType.UPDATE, new UpdateHandler(this.queueStore));
     }
 
@@ -216,10 +211,10 @@ public class Peer {
 
 
     public void setLeader(String leader) {
-        this.leader = leader;
+        synchronized (roleLock){this.leader=leader;}
     }
     public String getLeader() {
-        return this.leader;
+        synchronized (roleLock){return this.leader;}
     }
 
     public LeaderHandler getLeaderHandler() {

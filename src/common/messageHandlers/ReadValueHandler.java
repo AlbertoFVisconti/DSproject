@@ -3,6 +3,7 @@ package common.messageHandlers;
 import com.sun.jdi.Value;
 import common.messages.*;
 import common.util.NotLeaderException;
+import peer.Peer;
 import peer.QueueStore;
 import raft.Role;
 
@@ -11,30 +12,33 @@ import java.util.UUID;
 
 public class ReadValueHandler extends Handler<ReadValueMessage> {
     private final QueueStore queue;
-    private Role recvRole;
+    private final Peer peer;
 
-    public ReadValueHandler(QueueStore queue, Role role) {
+    public ReadValueHandler(QueueStore queue, Peer peer) {
         this.queue = queue;
-        this.recvRole = role;
+        this.peer = peer;
     }
 
     @Override
     public Optional<Response> visit(ReadValueMessage message) throws NotLeaderException {
         String queueId = message.getQueueId();
         String clientId = message.getSenderId();
-        if (recvRole != Role.LEADER) {
-            throw new NotLeaderException("Peer is not the leader.");
+        if(peer.getRole()==Role.LEADER){
+            try {
+                int val = queue.readValue(queueId, clientId);
+                ValueResponse res = new ValueResponse(message.getUuid());
+                res.setValue(val);
+                return Optional.of(res);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(e.getMessage());
+            }
+        }else{
+            if(peer.getLeader()==null) {System.out.print("No leader found, letting it timeout");}
+            else{
+                System.out.println("Forwarding to leader: "+this.peer.getLeader());
+                peer.contactPeer(peer.getLeader(), message);}
         }
-        try {
-            //TODO if there is no leader do not send it (let it timeout)
-            //if there is leader send it to him
-            int val = queue.readValue(queueId, clientId);
-            ValueResponse res = new ValueResponse(message.getUuid());
-            res.setValue(val);
-            return Optional.of(res);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
+        return Optional.empty();
     }
     @Override
     public ReadValueMessage deserialize(String payload) {

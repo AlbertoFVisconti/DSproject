@@ -2,6 +2,7 @@ package common.messageHandlers;
 
 import common.messages.*;
 import common.util.NotLeaderException;
+import peer.Peer;
 import peer.QueueStore;
 import raft.Role;
 
@@ -10,10 +11,10 @@ import java.util.UUID;
 
 public class AppendValueHandler extends Handler<AppendValueMessage> {
     private final QueueStore queue;
-    private Role recvRole;
-    public AppendValueHandler(QueueStore queue, Role role) {
+    private final Peer peer;
+    public AppendValueHandler(QueueStore queue, Peer peer) {
         this.queue = queue;
-        this.recvRole = role;
+        this.peer = peer;
     }
 
     @Override
@@ -21,15 +22,31 @@ public class AppendValueHandler extends Handler<AppendValueMessage> {
         String queueId = message.getQueueId();
         String clientId = message.getSenderId();
         int value = message.getValue();
-        if (recvRole != Role.LEADER) {
-            throw new NotLeaderException("Peer is not the leader.");
+        System.out.println("Recived message: "+message.serialize());
+        if (peer.getRole() == Role.LEADER && message.getLeaderId()==null) {
+            AppendValueMessage appendValueMessage= new AppendValueMessage(message.getUuid(), queueId, value, peer.getId().toString());
+            appendValueMessage.setSenderId(clientId);
+            peer.broadcast(appendValueMessage.serialize(), peer.getId().toString());
+            try {
+                queue.addValue(queueId, clientId, value);
+                return Optional.of(new AckMessage(message.getUuid()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Queue with id " + queueId + " does not exist");
+            }
+        } else if (peer.getRole()==Role.FOLLOWER && message.getLeaderId()!=null) {
+            try {
+                queue.addValue(queueId, clientId, value);
+                return Optional.of(new AckMessage(message.getUuid()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Queue with id " + queueId + " does not exist");
+            }
+        } else if (peer.getRole()==Role.FOLLOWER && message.getLeaderId()==null) {
+            if(peer.getLeader()==null) {System.out.print("No leader found, letting it timeout");}
+            else{
+                System.out.println("Forwarding to leader: "+this.peer.getLeader());
+                peer.contactPeer(peer.getLeader(), message);}
         }
-        try {
-            queue.addValue(queueId, clientId, value);
-            return Optional.of(new AckMessage(message.getUuid()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Queue with id " + queueId + " does not exist");
-        }
+        return Optional.empty();
     }
 
     @Override
@@ -39,16 +56,13 @@ public class AppendValueHandler extends Handler<AppendValueMessage> {
         String senderId = parts[1];
         String queueId = parts[2];
         int value = Integer.parseInt(parts[3]);
-        AppendValueMessage msg = new AppendValueMessage(id, queueId, value);
+        String leaderId =null;
+        if(parts.length == 5) {
+            leaderId = parts[4];
+        }
+        AppendValueMessage msg = new AppendValueMessage(id, queueId, value, leaderId);
         msg.setSenderId(senderId);
         return msg;
     }
 
-    public void setRecvRole(Role role) {
-        this.recvRole = role;
-    }
-
-    public Role getRecvRole() {
-        return recvRole;
-    }
 }
