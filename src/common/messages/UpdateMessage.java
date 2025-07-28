@@ -8,6 +8,7 @@ import common.util.NotLeaderException;
 import peer.QueueStore;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UpdateMessage extends Message {
     private QueueStore queueStore;
     private int value;
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> clientQueues;
-    public UpdateMessage(UUID uuid,int value, QueueStore queueStore, ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> clientQueues) {
+    private ConcurrentHashMap<String, LinkedList<Map.Entry<Integer, LinkedList<String>>>> clientQueues;
+    public UpdateMessage(UUID uuid,int value, QueueStore queueStore, ConcurrentHashMap<String, LinkedList<Map.Entry<Integer, LinkedList<String>>>> clientQueues) {
         super(uuid, MessageType.UPDATE);
         this.queueStore = queueStore;
         this.clientQueues = clientQueues;
@@ -34,7 +35,7 @@ public class UpdateMessage extends Message {
         return visitor.visit(this);
     }
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> getClientQueues() {
+    public ConcurrentHashMap<String, LinkedList<Map.Entry<Integer, LinkedList<String>>>> getClientQueues() {
         return clientQueues;
     }
 

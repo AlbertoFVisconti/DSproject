@@ -80,7 +80,7 @@ public class Client {
     }
 
     public void readFromQueue(PrintWriter out, String queueId) {
-        ReadValueMessage readQueue = new ReadValueMessage(UUID.randomUUID(), queueId);
+        ReadValueMessage readQueue = new ReadValueMessage(UUID.randomUUID(), queueId, null);
         readQueue.setSenderId(id.toString());
         out.println(readQueue.serialize());
     }

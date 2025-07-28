@@ -9,19 +9,24 @@ import java.util.UUID;
 
 public class ReadValueMessage extends Message {
     private final String queueId;
-
-    public ReadValueMessage(UUID uuid,  String queueId) {
+    private String leaderId;
+    public ReadValueMessage(UUID uuid,  String queueId, String leaderId) {
         super(uuid, MessageType.READVALUE);
         this.queueId = queueId;
+        this.leaderId = leaderId;
     }
 
     public String getQueueId() {
         return queueId;
     }
-
+    public String getLeaderId() {return leaderId;}
     @Override
     public String serialize() {
-        return getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId();
+        String res =getType().name() + ":" + getUuid() + ":" + getSenderId() + ":" + getQueueId();
+        if(leaderId != null) {
+            res += ":" + leaderId;
+        }
+        return res;
     }
 
     @Override

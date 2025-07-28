@@ -6,6 +6,7 @@ import common.messages.UpdateMessage;
 import peer.QueueStore;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,7 +21,7 @@ public class UpdateHandler extends Handler<UpdateMessage>{
         String[] parts = payload.split(":");
         UUID id = UUID.fromString(parts[0]);
         int value = Integer.parseInt(parts[1]);
-        ConcurrentHashMap<String, ConcurrentHashMap<String, LinkedList<Integer>>> map = queueStore.deserialize(parts[2]);
+        ConcurrentHashMap<String, LinkedList<Map.Entry<Integer, LinkedList<String>>>> map = queueStore.deserialize(parts[2]);
         UpdateMessage msg= new UpdateMessage(id,value,queueStore, map);
         msg.setSenderId(msg.getSenderId());
         return msg;
