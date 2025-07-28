@@ -1,8 +1,11 @@
 package common.messageHandlers;
 
+import common.messages.CandidateMessage;
 import common.messages.PingMessage;
 import common.messages.Response;
 import peer.LeaderHandler;
+import peer.Peer;
+import raft.Role;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -15,7 +18,16 @@ public class PingHandler extends Handler<PingMessage> {
     }
     @Override
     public Optional<Response> visit(PingMessage message) {
-        if(this.leaderHandler.isListening()){leaderHandler.setLeader(message.getLeader_uuid());}
+        if(this.leaderHandler.isListening()){
+            Peer peer =this.leaderHandler.getPeer();
+            if (peer.getRole()== Role.FOLLOWER)
+                leaderHandler.setLeader(message.getLeader_uuid());
+            else if (peer.getRole()== Role.LEADER) {
+                CandidateMessage msg = new CandidateMessage(UUID.randomUUID(), peer.getValue());
+                msg.setSenderId(peer.getId().toString());
+                peer.broadcast(msg.serialize(), "");
+            }
+        }
         this.leaderHandler.receivedPing();
         return Optional.empty();
     }

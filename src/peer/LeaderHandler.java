@@ -96,4 +96,5 @@ public class LeaderHandler {
     public boolean isListening() {
         synchronized (pingLock) {return listening;}
     }
+    public Peer getPeer(){return peer;}
 }
