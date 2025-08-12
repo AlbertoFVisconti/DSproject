@@ -83,7 +83,6 @@ public class Peer {
                     }
                 } catch (NotLeaderException e) {
                     System.out.println(e.getMessage());
-                    //TODO send message to leader
                 } catch (NewPeerFoundException | NewClientFoundException e) {
                     System.out.println(e.getMessage());
                     broadcast(msg.serialize(), id.toString());

@@ -44,33 +44,37 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
     }
 
     public Optional<Response> visit(CandidateMessage msg){
-        if(!received){
-            received=true;
-            this.election=true;
-            new Thread(this::Timer).start();
-            if(msg.getValue()< peer.getValue()){
-                CandidateMessage cmsg = new CandidateMessage(msg.getUuid(), peer.getValue());
-                cmsg.setSenderId(this.peer.getId().toString());
-                peer.broadcast(cmsg.serialize(), "");
-                UpdateMessage updateMessage=new UpdateMessage(this.peer.getId(), peer.getValue(), peer.getQueueStore(), peer.getQueueStore().getClientQueues());
-                updateMessage.setSenderId(this.peer.getId().toString());
-                peer.broadcast(updateMessage.serialize(), "");
-                return Optional.empty();
+        if (candidates.contains(msg)){
+            // drop message if duplicate comes around
+            return Optional.empty();
+        } else {
+            if (!received) {
+                received = true;
+                this.election = true;
+                new Thread(this::Timer).start();
+                if (msg.getValue() < peer.getValue()) {
+                    CandidateMessage cmsg = new CandidateMessage(msg.getUuid(), peer.getValue());
+                    cmsg.setSenderId(this.peer.getId().toString());
+                    peer.broadcast(cmsg.serialize(), "");
+                    UpdateMessage updateMessage = new UpdateMessage(this.peer.getId(), peer.getValue(), peer.getQueueStore(), peer.getQueueStore().getClientQueues());
+                    updateMessage.setSenderId(this.peer.getId().toString());
+                    peer.broadcast(updateMessage.serialize(), "");
+                    return Optional.empty();
+                }
             }
-        }
-        synchronized (candidates){
-            if(election){
-                candidates.add(msg);
+            synchronized (candidates) {
+                if (election) {
+                    candidates.add(msg);
+                }
             }
+            if (msg.getValue() > peer.getValue()) {
+                //ask for update with peer message if not up to date
+                PeerMessage peerMessage = new PeerMessage(this.peer.getId(), peer.getIp(), peer.getPort());
+                peerMessage.setSenderId(this.peer.getId().toString());
+                peer.contactPeer(msg.getSenderId(), peerMessage);
+            }
+            return Optional.empty();
         }
-        if(msg.getValue()> peer.getValue()){
-            //ask for update with peer message if not up to date
-            PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
-            peerMessage.setSenderId(this.peer.getId().toString());
-            peer.contactPeer(msg.getSenderId(),peerMessage);
-        }
-
-        return Optional.empty();
     }
 
     @Override
