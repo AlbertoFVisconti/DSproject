@@ -78,8 +78,7 @@ public class Peer {
                 Message msg = registry.deserialize(message);
                 try {
                     Optional<Response> ret = registry.handle(msg);
-                    // Only leader talks back to client
-                    if(ret.isPresent() && this.role == Role.LEADER) {
+                    if(ret.isPresent()) {
                         Response res = ret.get();
                         res.setSenderId(id.toString());
                         contactClient(msg.getSenderId(), res);
@@ -89,23 +88,21 @@ public class Peer {
                 } catch (NewPeerFoundException | NewClientFoundException e) {
                     System.out.println(e.getMessage());
                     // If this is the leader, confirm to client they are connected and forward new client message to followers
-                    if(this.role == Role.LEADER && e instanceof NewClientFoundException) {
+                    if(e instanceof NewClientFoundException) {
                         broadcast(msg.serialize(), id.toString());
                         Response res = new AckMessage(msg.getUuid());
                         res.setSenderId(id.toString());
                         contactClient(msg.getSenderId(), res);
                     }
                     // Since peers connect to the leader, only him needs to forward the new peer message
-                    if(this.role == Role.LEADER && e instanceof NewPeerFoundException) {
+                    if(e instanceof NewPeerFoundException) {
                         broadcast(msg.serialize(), id.toString());
                     }
                 } catch (IllegalArgumentException e) {
-                    if(this.role == Role.LEADER) {
-                        NAckMessage res = new NAckMessage(msg.getUuid());
-                        res.setError(e.getMessage());
-                        res.setSenderId(id.toString());
-                        contactClient(msg.getSenderId(), res);
-                    }
+                    NAckMessage res = new NAckMessage(msg.getUuid());
+                    res.setError(e.getMessage());
+                    res.setSenderId(id.toString());
+                    contactClient(msg.getSenderId(), res);
                 }
             }
         } catch (IOException e) {

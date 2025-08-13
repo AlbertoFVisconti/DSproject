@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ public class Client {
     private final HandlerRegistry registry = new HandlerRegistry();
     private String peerIp;
     private int peerPort;
+    private final ArrayList<String> recvMessages = new ArrayList<>();
 
     public Client(String ip, int port) {
         this.ip = ip;
@@ -57,6 +59,16 @@ public class Client {
             String message;
             while ((message = in.readLine()) != null) {
                 Message msg = registry.deserialize(message);
+                synchronized (recvMessages) {
+                    if (recvMessages.contains(msg.getUuid().toString())) {
+                        continue;
+                    }
+                    recvMessages.add(msg.getUuid().toString());
+                    // Clear list after 100 messages, seems a good assumption that a client does not receive two ACKs for a same message 100 messages apart
+                    if (recvMessages.size() > 100) {
+                        recvMessages.clear();
+                    }
+                }
                 try {
                     registry.handle(msg);
                 } catch (NewLeaderException e) {
