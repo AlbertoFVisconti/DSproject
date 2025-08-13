@@ -122,7 +122,14 @@ public class Client {
                 // Wait till we receive the ACK from the leader
                 synchronized (lock) {
                     try {
-                        lock.wait();
+                        long start = System.currentTimeMillis();
+                        lock.wait(2000); // Wait for up to 2 seconds
+                        long elapsed = System.currentTimeMillis() - start;
+                        if (elapsed >= 2000) {
+                            System.out.println("Did not receive any ack by 2 seconds!");
+                            System.out.println("Exiting ...");
+                            System.exit(1);
+                        }
                     } catch (InterruptedException e) {
                         System.out.println("No ACK received from peer! Exiting ...");
                         System.exit(1);
@@ -180,7 +187,7 @@ public class Client {
                     lock.wait(2000); // Wait for up to 2 seconds
                     long elapsed = System.currentTimeMillis() - start;
                     if (elapsed >= 2000) {
-                        System.out.println("unable to send");
+                        System.out.println("Didn't receive any confirmation, please try again!");
                     }
                 }
             } catch (IOException | InterruptedException e) {
