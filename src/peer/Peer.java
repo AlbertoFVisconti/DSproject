@@ -7,10 +7,7 @@ import java.util.*;
 import common.HandlerRegistry;
 import common.MessageType;
 import common.messageHandlers.*;
-import common.messages.Message;
-import common.messages.NAckMessage;
-import common.messages.PeerMessage;
-import common.messages.Response;
+import common.messages.*;
 import common.util.NewClientFoundException;
 import common.util.NewPeerFoundException;
 import common.util.NotLeaderException;
@@ -34,12 +31,17 @@ public class Peer {
     private String leader;
     private final LeaderHandler leaderHandler;
 
+    // Used only for prints to make the CLI more readable and less verbose
+    public String truncateUUID(UUID uuid) {
+        return uuid.toString().substring(0, 8);
+    }
+
     public Peer(String ip, int port) {
         this.ip=ip;
         this.port = port;
         this.role = Role.LEADER;
         this.leaderHandler = new LeaderHandler();
-
+        peerAddresses.addEntry(this.id.toString(), ip + ":" + port);
         registry.registerHandler(MessageType.ADDCLIENT, new AddClientHandler(clientAddresses, role));
         registry.registerHandler(MessageType.APPENDVALUE, new AppendValueHandler(queueStore, this));
         registry.registerHandler(MessageType.PEER, new PeerHandler(peerAddresses, this));
@@ -53,7 +55,7 @@ public class Peer {
     public void start() {
         new Thread(this::listenForMessages).start();
         leaderHandler.start(this);
-        System.out.println("[" + id + "] Listening on port " + port);
+        System.out.println("[" + truncateUUID(id) + "] Listening on port " + port);
     }
 
     private void listenForMessages() {
@@ -76,7 +78,8 @@ public class Peer {
                 Message msg = registry.deserialize(message);
                 try {
                     Optional<Response> ret = registry.handle(msg);
-                    if(ret.isPresent()) {
+                    // Only leader talks back to client
+                    if(ret.isPresent() && this.role == Role.LEADER) {
                         Response res = ret.get();
                         res.setSenderId(id.toString());
                         contactClient(msg.getSenderId(), res);
@@ -85,16 +88,28 @@ public class Peer {
                     System.out.println(e.getMessage());
                 } catch (NewPeerFoundException | NewClientFoundException e) {
                     System.out.println(e.getMessage());
-                    broadcast(msg.serialize(), id.toString());
+                    // If this is the leader, confirm to client they are connected and forward new client message to followers
+                    if(this.role == Role.LEADER && e instanceof NewClientFoundException) {
+                        broadcast(msg.serialize(), id.toString());
+                        Response res = new AckMessage(msg.getUuid());
+                        res.setSenderId(id.toString());
+                        contactClient(msg.getSenderId(), res);
+                    }
+                    // Since peers connect to the leader, only him needs to forward the new peer message
+                    if(this.role == Role.LEADER && e instanceof NewPeerFoundException) {
+                        broadcast(msg.serialize(), id.toString());
+                    }
                 } catch (IllegalArgumentException e) {
-                    NAckMessage res = new NAckMessage(msg.getUuid());
-                    res.setError(e.getMessage());
-                    res.setSenderId(id.toString());
-                    contactClient(msg.getSenderId(), res);
+                    if(this.role == Role.LEADER) {
+                        NAckMessage res = new NAckMessage(msg.getUuid());
+                        res.setError(e.getMessage());
+                        res.setSenderId(id.toString());
+                        contactClient(msg.getSenderId(), res);
+                    }
                 }
             }
         } catch (IOException e) {
-            System.err.println("[" + id + "] Peer connection error");
+            System.err.println("[" + truncateUUID(id) + "] Peer connection error");
         }
     }
 
@@ -106,10 +121,10 @@ public class Peer {
                 PeerMessage pm = new PeerMessage(UUID.randomUUID(), this.ip, this.port);
                 pm.setSenderId(id.toString());
                 out.println(pm.serialize());
-                System.out.println("[" + id + "] Connected to " + host + ":" + peerPort);
+                System.out.println("[" + truncateUUID(id) + "] Connected to " + host + ":" + peerPort);
                 socket.close();
             } catch (IOException e) {
-                System.out.println("[" + id + "] Failed to connect to " + host + ":" + peerPort);
+                System.out.println("[" + truncateUUID(id) + "] Failed to connect to " + host + ":" + peerPort);
             }
         }
     }
@@ -124,7 +139,7 @@ public class Peer {
                 out.println(message.serialize());
                 socket.close();
             } catch (IOException e) {
-                System.out.println("[" + id + "] Failed to connect to " + client_ip + ":" + client_port);
+                System.out.println("[" + truncateUUID(this.id) + "] Failed to connect to " + client_ip + ":" + client_port);
             }
 }
     }
@@ -142,7 +157,7 @@ public class Peer {
                         out.println(message);
                         socket.close();
                     } catch (IOException e) {
-                        System.out.println("[" + id + "] Failed to send to " + entry);
+                        System.out.println("[" + truncateUUID(id) + "] Failed to send to " + entry);
                         this.peerAddresses.removeEntry(entry);
                     }
                 }
@@ -160,12 +175,12 @@ public class Peer {
                     out.println(message.serialize());
                     socket.close();
                 }catch (IOException e) {
-                    System.out.println("[" + id + "] Failed to send to " + id);
+                    System.out.println("[" + truncateUUID(this.id) + "] Failed to send to " + id);
                     this.peerAddresses.removeEntry(id);
                 }
             }
             else{
-                System.out.println("[" + id + "] Peer " + id + " not found");
+                System.out.println("[" + truncateUUID(this.id) + "] Peer " + id + " not found");
             }
         }
     }
@@ -224,5 +239,9 @@ public class Peer {
 
     public QueueStore getQueueStore() {
         return queueStore;
+    }
+
+    public AddressRegistry getClientAddressRegistry() {
+        return clientAddresses;
     }
 }

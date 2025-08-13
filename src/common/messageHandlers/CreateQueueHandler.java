@@ -30,14 +30,14 @@ public class CreateQueueHandler extends Handler<CreateQueueMessage> {
                 queue.addQueue(queueId);
                 return Optional.of(new AckMessage(message.getUuid()));
             } catch (IllegalArgumentException e) {
-                throw new NoSuchFieldError("Queue with id " + queueId + " does not exist");
+                throw new IllegalArgumentException(e.getMessage());
             }
         } else if (peer.getRole()==Role.FOLLOWER && message.getLeaderId()!=null) {
             try {
                 queue.addQueue(queueId);
                 return Optional.of(new AckMessage(message.getUuid()));
             } catch (IllegalArgumentException e) {
-                throw new NoSuchFieldError("Queue with id " + queueId + " does not exist");
+                throw new IllegalArgumentException(e.getMessage());
             }
         } else if (peer.getRole()==Role.FOLLOWER && message.getLeaderId()==null) {
             if(peer.getLeader()==null) {System.out.print("No leader found, letting it timeout");}

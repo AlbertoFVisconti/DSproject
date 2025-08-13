@@ -56,4 +56,11 @@ public class AbstractMsgVisitor implements MsgVisitor {
 
     @Override
     public Optional<Response> visit(UpdateMessage message) {return Optional.empty(); }
+
+    @Override
+    public Optional<Response> visit(NewLeaderMessage message) throws NewLeaderException {
+        return Optional.empty();
+    }
+
+
 }

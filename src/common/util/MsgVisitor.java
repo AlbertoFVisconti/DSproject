@@ -2,6 +2,7 @@ package common.util;
 
 import common.messages.*;
 
+import javax.swing.text.html.Option;
 import java.util.Optional;
 
 public interface MsgVisitor {
@@ -16,4 +17,5 @@ public interface MsgVisitor {
     Optional<Response> visit(ReadValueMessage message) throws NotLeaderException;
     Optional<Response> visit(ValueResponse message);
     Optional<Response> visit(UpdateMessage message);
+    Optional<Response> visit(NewLeaderMessage message) throws NewLeaderException;
 }

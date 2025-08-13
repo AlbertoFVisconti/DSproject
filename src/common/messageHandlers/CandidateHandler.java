@@ -31,7 +31,18 @@ public class CandidateHandler extends  Handler<CandidateMessage>{
                 else this.peer.setRole(Role.FOLLOWER);
                 this.candidates.clear();
                 this.peer.getLeaderHandler().start(this.peer);
-                System.out.println(this.peer.getRole()+": "+"leader is "+this.peer.getLeader());
+                if(this.peer.getLeader().equals(this.peer.getId().toString())) {
+                    System.out.println("I am the new leader!");
+                    NewLeaderMessage msg = new NewLeaderMessage(UUID.randomUUID());
+                    msg.setSenderId(this.peer.getId().toString());
+                    msg.setLeaderIp(this.peer.getIp());
+                    msg.setLeaderPort(this.peer.getPort());
+                    for(String clientId : peer.getClientAddressRegistry().getIds()) {
+                        peer.contactClient(clientId, msg);
+                    }
+                } else {
+                    System.out.println(this.peer.getRole() + ": " + "leader is " + this.peer.getLeader().substring(0, 8));
+                }
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

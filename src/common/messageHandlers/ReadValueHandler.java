@@ -38,7 +38,7 @@ public class ReadValueHandler extends Handler<ReadValueMessage> {
         }else if(peer.getRole()==Role.FOLLOWER && message.getLeaderId()==null){
             if(peer.getLeader()==null) {System.out.print("No leader found, letting it timeout");}
             else{
-                System.out.println("Forwarding to leader: "+this.peer.getLeader());
+                System.out.println("Forwarding to leader: "+ this.peer.getLeader().substring(0, 8));
                 peer.contactPeer(peer.getLeader(), message);}
         } else if (peer.getRole()==Role.FOLLOWER && message.getLeaderId()!=null) {
             int val = queue.readValue(queueId, clientId);

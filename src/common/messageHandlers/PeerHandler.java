@@ -33,7 +33,7 @@ public class PeerHandler extends Handler<PeerMessage> {
             PeerMessage peerMessage=new PeerMessage(this.peer.getId(), peer.getIp(),peer.getPort());
             peerMessage.setSenderId(this.peer.getId().toString());
             peer.contactPeer(msg.getSenderId(),peerMessage);
-            throw new NewPeerFoundException("New peer " + id + ip + " found. Forwarding to all peers.");
+            throw new NewPeerFoundException("New peer " + id.substring(0, 8) + "@" + ip + " found. Forwarding to all peers.");
 
         }
         return Optional.empty();

@@ -4,11 +4,10 @@ import common.HandlerRegistry;
 import common.messageHandlers.AckHandler;
 import common.messageHandlers.NAckHandler;
 import common.MessageType;
+import common.messageHandlers.NewLeaderHandler;
 import common.messageHandlers.ValueResponseHandler;
-import common.messages.AddClientMessage;
-import common.messages.AppendValueMessage;
-import common.messages.CreateQueueMessage;
-import common.messages.ReadValueMessage;
+import common.messages.*;
+import common.util.NewLeaderException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,6 +24,8 @@ public class Client {
     private final String ip;
     private final static UUID id = UUID.randomUUID();
     private final HandlerRegistry registry = new HandlerRegistry();
+    private String peerIp;
+    private int peerPort;
 
     public Client(String ip, int port) {
         this.ip = ip;
@@ -32,6 +33,7 @@ public class Client {
         registry.registerHandler(MessageType.ACK, new AckHandler(lock));
         registry.registerHandler(MessageType.NACK, new NAckHandler(lock));
         registry.registerHandler(MessageType.VALRES, new ValueResponseHandler(lock));
+        registry.registerHandler(MessageType.NEWLEADER, new NewLeaderHandler(peerIp, peerPort));
     }
 
     public void start() {
@@ -54,7 +56,18 @@ public class Client {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String message;
             while ((message = in.readLine()) != null) {
-                registry.handle(registry.deserialize(message));
+                Message msg = registry.deserialize(message);
+                try {
+                    registry.handle(msg);
+                } catch (NewLeaderException e) {
+                    System.out.println("\n");
+                    System.out.println(e.getMessage());
+                    // This is not pretty but should be safe
+                    NewLeaderMessage nlm = (NewLeaderMessage) msg;
+                    this.peerIp = nlm.getLeaderIp();
+                    this.peerPort = nlm.getLeaderPort();
+                    System.out.println("Press enter to continue...");
+                }
             }
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
@@ -94,20 +107,41 @@ public class Client {
             scanner.close();
             return;
         }
+        int counter = 0;
         String  ip = args[0];
         int port = Integer.parseInt(args[1]);
-        String peerIp = args[2];
-        int peerPort = Integer.parseInt(args[3]);
         Client client = new Client(ip, port);
+        client.peerIp = args[2];
+        client.peerPort = Integer.parseInt(args[3]);
         client.start();
-        // First connection
-        try(Socket socket = new Socket(peerIp, peerPort)) {
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            client.sendAddClient(out);
-        } catch (IOException e) {
-            System.out.println("Error during connection to " + peerIp + ":" + peerPort);
+        // First connection, try three times and if failed connect to leader
+        while (counter < 3) {
+            try (Socket socket = new Socket(client.peerIp, client.peerPort)) {
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                client.sendAddClient(out);
+                // Wait till we receive the ACK from the leader
+                synchronized (lock) {
+                    try {
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        System.out.println("No ACK received from peer! Exiting ...");
+                        System.exit(1);
+                    }
+                }
+                break;
+            } catch (IOException e) {
+                System.out.println("Error during connection to " + client.peerIp + ":" + client.peerPort + ", please try again!");
+                counter++;
+            }
+            System.out.print("Enter peer ip: ");
+            client.peerIp = scanner.nextLine();
+            System.out.print("Enter peer port: ");
+            client.peerPort = Integer.parseInt(scanner.nextLine());
         }
-
+        if (counter == 3) {
+            System.out.println("Connection to peer failed three times in a row, please ensure that it is online! Exiting ...");
+            System.exit(1);
+        }
         while (true) {
             System.out.print("Enter 'create [queueId]' or 'add [queueID value]' or 'read [queueID]' or 'quit': ");
             String line = scanner.nextLine();
@@ -115,7 +149,6 @@ public class Client {
                 scanner.close();
                 break;
             }
-
             String[] parts = line.trim().split("\\s+");
             if (parts.length < 2 || parts.length > 3) {
                 System.out.println("Invalid input. Please enter either 'create [queueId]' or 'add [queueId value]'.");
@@ -123,7 +156,7 @@ public class Client {
             }
             String command = parts[0];
 
-            try (Socket socket = new Socket(peerIp, peerPort)) {
+            try (Socket socket = new Socket(client.peerIp, client.peerPort)) {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
                 if (command.equalsIgnoreCase("create") && parts.length == 2) {
@@ -142,7 +175,7 @@ public class Client {
                 }
 
                 synchronized (lock) {
-                    System.out.println("Sent to " + peerIp + ":" + peerPort);
+                    System.out.println("Sent to " + client.peerIp + ":" + client.peerPort);
                     long start = System.currentTimeMillis();
                     lock.wait(2000); // Wait for up to 2 seconds
                     long elapsed = System.currentTimeMillis() - start;
@@ -151,8 +184,8 @@ public class Client {
                     }
                 }
             } catch (IOException | InterruptedException e) {
-                System.out.println("Failed to send to " + peerIp + ":" + peerPort);
-            }catch (NumberFormatException e) {
+                System.out.println("Failed to send to " + client.peerIp + ":" + client.peerPort);
+            } catch (NumberFormatException e) {
                 System.out.println("Invalid number format for value.");
             }
         }

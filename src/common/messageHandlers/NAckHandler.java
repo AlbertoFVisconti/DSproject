@@ -15,8 +15,7 @@ public class NAckHandler extends Handler<NAckMessage> {
     }
     @Override
     public Optional<Response> visit(NAckMessage message) {
-        // TODO maybe convert this to an error message
-        System.out.println("Received NACK from " + message.getSenderId() + ": " + message.getError());
+        System.out.println("Received NACK from " + message.getSenderId().substring(0, 8) + ": " + message.getError());
         synchronized (lock) {
             lock.notifyAll();
         }

@@ -15,7 +15,7 @@ public class QueueStore {
     public void addQueue(String queueId) {
         if (clientQueues.containsKey(queueId)) {
             System.out.println("Already queue with id " + queueId + " exists");
-            throw new IllegalArgumentException("No queue with id " + queueId + " exists");
+            throw new IllegalArgumentException("Queue " + queueId + " already exists");
         }
         System.out.println("Adding queue with id " + queueId);
         clientQueues.put(queueId, new LinkedList<>());

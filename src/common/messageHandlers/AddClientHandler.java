@@ -30,7 +30,7 @@ public class AddClientHandler extends Handler<AddClientMessage> {
         int port = message.getPort();
         if (clientRegistry.getAddress(id) == null) {
             clientRegistry.addEntry(id, ip + ":" + port);
-            throw new NewClientFoundException("New client " + id + " found. Forwarding to all peers.");
+            throw new NewClientFoundException("New client " + id.substring(0, 8) + " found. Forwarding to all peers.");
         }
         clientRegistry.addEntry(id, ip + ":" + port);
         return Optional.of(new AckMessage(message.getUuid()));

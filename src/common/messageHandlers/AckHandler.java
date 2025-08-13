@@ -14,7 +14,7 @@ public class AckHandler extends Handler<AckMessage> {
     }
     @Override
     public Optional<Response> visit(AckMessage message) {
-        System.out.println("Received ACK from " + message.getSenderId());
+        System.out.println("Received ACK from " + message.getSenderId().substring(0, 8));
         synchronized (lock) {
             lock.notifyAll();
         }

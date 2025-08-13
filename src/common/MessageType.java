@@ -27,5 +27,6 @@ public enum MessageType {
     //this message is sent to a peer joining the network to bring it up to date with the state of the queues
     UPDATE,
     ACK,
-    NACK
+    NACK,
+    NEWLEADER
 }
